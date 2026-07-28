@@ -6,3 +6,20 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+model User {
+  id             Int             @id @default(autoincrement())
+  email          String          @unique @db.VarChar(120)
+  fullName       String          @db.VarChar(100)
+  passwordHash   String
+  phone          String?         @db.VarChar(10)
+  dateOfBirth    DateTime?
+  panNumber      String?         @db.VarChar(10)
+  address        String?         @db.VarChar(200)
+  role           String          @default("USER") @db.VarChar(10)
+  totpSecret     String?         @db.VarChar(64)
+  totpEnabled    Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+
+  @@map("users")
+}
