@@ -63,3 +63,49 @@ model LedgerEntry {
   @@index([reference])
   @@map("ledger_entries")
 }
+
+model Beneficiary {
+  id            Int      @id @default(autoincrement())
+  ownerId       Int      @map("owner_id")
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String   @db.VarChar(100)
+  accountNumber BigInt
+  nickname      String?  @db.VarChar(60)
+  createdAt     DateTime @default(now())
+
+  @@index([ownerId])
+  @@map("beneficiaries")
+}
+
+model Card {
+  id                     Int       @id @default(autoincrement())
+  accountId              Int       @unique @map("account_id")
+  account                Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  network                String    @default("VISA") @db.VarChar(20)
+  expiryMonth            Int
+  expiryYear             Int
+  frozen                 Boolean   @default(false)
+  contactlessEnabled     Boolean   @default(true)
+  onlineEnabled          Boolean   @default(true)
+  dailyLimit             Decimal   @default(25000.00) @db.Decimal(19, 2)
+  replacementRequestedAt DateTime?
+  createdAt              DateTime  @default(now())
+
+  @@map("cards")
+}
+
+model BillPayment {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int      @map("owner_id")
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  accountId Int      @map("account_id")
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category  String   @db.VarChar(60)
+  consumer  String   @db.VarChar(60)
+  amount    Decimal  @db.Decimal(19, 2)
+  reference String   @db.VarChar(40)
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+  @@map("bill_payments")
+}
