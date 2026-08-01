@@ -109,3 +109,16 @@ model BillPayment {
   @@index([ownerId])
   @@map("bill_payments")
 }
+
+model SupportTicket {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int      @map("owner_id")
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  subject   String   @db.VarChar(150)
+  message   String   @db.VarChar(2000)
+  status    String   @default("OPEN") @db.VarChar(10) // OPEN, CLOSED
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+  @@map("support_tickets")
+}
