@@ -81,5 +81,123 @@ export const accountService = {
     const take = Math.min(Number(size) || 10, 100);
     const skip = (Number(page) || 0) * take;
 
-    const [totalElements, entries] = await Promise.a
-module.exports = { createAccount, getAccounts, getAccountByNumber };
+    const [totalElements, entries] = await Promise.all([
+      prisma.ledgerEntry.count({ where: { accountId: acct.id } }),
+      prisma.ledgerEntry.findMany({
+        where: { accountId: acct.id },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalElements / take) || (totalElements === 0 ? 0 : 1);
+    const pageNum = Number(page) || 0;
+
+    return {
+      content: entries.map(toLedgerEntryResponse),
+      page: pageNum,
+      size: take,
+      totalElements,
+      totalPages,
+      first: pageNum === 0,
+      last: pageNum >= totalPages - 1 || totalPages === 0,
+    };
+  },
+
+  async fullHistory(owner, accountNumber) {
+    const acct = await prisma.account.findUnique({
+      where: { accountNumber: BigInt(accountNumber) },
+    });
+    if (!acct) {
+      throw ApiException.notFound('Account not found');
+    }
+    if (acct.ownerId !== owner.id) {
+      throw ApiException.forbidden("You don't own this account");
+    }
+
+    const entries = await prisma.ledgerEntry.findMany({
+      where: { accountId: acct.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return entries.map(toLedgerEntryResponse);
+  },
+
+  async open(owner, { holderName, openingBalance = 0, pin }) {
+    if (!pin || pin.length < 4 || pin.length > 6) {
+      throw ApiException.badRequest('Security PIN must be 4 to 6 digits');
+    }
+
+    const pinHash = await bcrypt.hash(pin, 10);
+    const accountNumber = await generateUniqueAccountNumber();
+    const balanceNum = Number(openingBalance) || 0;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const created = await tx.account.create({
+        data: {
+          accountNumber,
+          ownerId: owner.id,
+          holderName: holderName.trim(),
+          balance: balanceNum,
+          pinHash,
+        },
+      });
+
+      if (balanceNum > 0) {
+        await tx.ledgerEntry.create({
+          data: {
+            accountId: created.id,
+            type: 'CREDIT',
+            amount: balanceNum,
+            balanceAfter: balanceNum,
+            description: 'Opening deposit',
+            reference: newReference(),
+          },
+        });
+      }
+
+      return created;
+    });
+
+    return toAccountResponse(result);
+  },
+
+  async credit(owner, { accountNumber, amount, pin }) {
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount <= 0) {
+      throw ApiException.badRequest('Amount must be positive');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const acct = await tx.account.findUnique({
+        where: { accountNumber: BigInt(accountNumber) },
+      });
+      if (!acct) {
+        throw ApiException.notFound('Account not found');
+      }
+      if (acct.ownerId !== owner.id) {
+        throw ApiException.forbidden("You don't own this account");
+      }
+      if (acct.frozen) {
+        throw ApiException.forbidden(`Account #${accountNumber} is frozen — contact support`);
+      }
+
+      const matches = await bcrypt.compare(pin, acct.pinHash);
+      if (!matches) {
+        throw ApiException.forbidden('Invalid security PIN');
+      }
+
+      const updatedBalance = Number(acct.balance) + numAmount;
+
+      const updated = await tx.account.update({
+        where: { id: acct.id },
+        data: { balance: updatedBalance },
+      });
+
+      await tx.ledgerEntry.create({
+        data: {
+          accountId: acct.id,
+          type: 'CREDIT',
+  
+module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit };
