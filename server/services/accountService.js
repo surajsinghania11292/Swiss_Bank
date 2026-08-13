@@ -246,5 +246,53 @@ export const accountService = {
 
       const currentBalance = Number(acct.balance);
       if (currentBalance < numAmount) {
-        throw ApiExce
-module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit, verifyPin };
+        throw ApiException.badRequest('Insufficient balance');
+      }
+
+      const updatedBalance = currentBalance - numAmount;
+
+      const updated = await tx.account.update({
+        where: { id: acct.id },
+        data: { balance: updatedBalance },
+      });
+
+      await tx.ledgerEntry.create({
+        data: {
+          accountId: acct.id,
+          type: 'DEBIT',
+          amount: numAmount,
+          balanceAfter: updatedBalance,
+          description,
+          reference: ref,
+        },
+      });
+
+      return updated;
+    });
+
+    return {
+      account: toAccountResponse(result),
+      reference: ref,
+    };
+  },
+
+  async transfer(owner, { fromAccountNumber, toAccountNumber, amount, pin, totpCode }) {
+    const fromNum = BigInt(fromAccountNumber);
+    const toNum = BigInt(toAccountNumber);
+    const numAmount = Number(amount);
+
+    if (fromNum === toNum) {
+      throw ApiException.badRequest('Cannot transfer to the same account');
+    }
+    if (!numAmount || numAmount <= 0) {
+      throw ApiException.badRequest('Transfer amount must be positive');
+    }
+
+    // High value transfer check (>= 50,000)
+    if (owner.totpEnabled && numAmount >= HIGH_VALUE_THRESHOLD) {
+      if (!totpCode || totpCode.trim() === '') {
+        throw ApiException.totpRequired(`This transfer is above ₹${HIGH_VALUE_THRESHOLD.toLocaleString('en-IN')} — enter your 2FA code to confirm`);
+      }
+      if (!totpService.verify(owner.totpSecret, totpCode.trim())) {
+       
+module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit, verifyPin, getTransactionHistory };
