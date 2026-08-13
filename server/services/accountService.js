@@ -199,5 +199,52 @@ export const accountService = {
         data: {
           accountId: acct.id,
           type: 'CREDIT',
-  
-module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit };
+          amount: numAmount,
+          balanceAfter: updatedBalance,
+          description: 'Cash deposit',
+          reference: newReference(),
+        },
+      });
+
+      return updated;
+    });
+
+    return toAccountResponse(result);
+  },
+
+  async debit(owner, { accountNumber, amount, pin }) {
+    const { account } = await this.debitInternal(owner, accountNumber, amount, pin, 'Cash withdrawal');
+    return account;
+  },
+
+  async debitInternal(owner, accountNumber, amount, pin, description) {
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount <= 0) {
+      throw ApiException.badRequest('Amount must be positive');
+    }
+
+    const ref = newReference();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const acct = await tx.account.findUnique({
+        where: { accountNumber: BigInt(accountNumber) },
+      });
+      if (!acct) {
+        throw ApiException.notFound('Account not found');
+      }
+      if (acct.ownerId !== owner.id) {
+        throw ApiException.forbidden("You don't own this account");
+      }
+      if (acct.frozen) {
+        throw ApiException.forbidden(`Account #${accountNumber} is frozen — contact support`);
+      }
+
+      const matches = await bcrypt.compare(pin, acct.pinHash);
+      if (!matches) {
+        throw ApiException.forbidden('Invalid security PIN');
+      }
+
+      const currentBalance = Number(acct.balance);
+      if (currentBalance < numAmount) {
+        throw ApiExce
+module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit, verifyPin };
