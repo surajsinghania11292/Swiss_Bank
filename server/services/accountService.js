@@ -294,5 +294,97 @@ export const accountService = {
         throw ApiException.totpRequired(`This transfer is above ₹${HIGH_VALUE_THRESHOLD.toLocaleString('en-IN')} — enter your 2FA code to confirm`);
       }
       if (!totpService.verify(owner.totpSecret, totpCode.trim())) {
-       
-module.exports = { createAccount, getAccounts, getAccountByNumber, transfer, credit, debit, verifyPin, getTransactionHistory };
+        throw ApiException.totpInvalid('Incorrect 2FA code');
+      }
+    }
+
+    const ref = newReference();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const fromAcct = await tx.account.findUnique({ where: { accountNumber: fromNum } });
+      const toAcct = await tx.account.findUnique({ where: { accountNumber: toNum } });
+
+      if (!fromAcct) {
+        throw ApiException.notFound(`Account #${fromAccountNumber} not found`);
+      }
+      if (!toAcct) {
+        throw ApiException.notFound(`Account #${toAccountNumber} not found`);
+      }
+
+      if (fromAcct.ownerId !== owner.id) {
+        throw ApiException.forbidden("You don't own the source account");
+      }
+      if (fromAcct.frozen) {
+        throw ApiException.forbidden(`Account #${fromAccountNumber} is frozen — contact support`);
+      }
+      if (toAcct.frozen) {
+        throw ApiException.forbidden(`Recipient Account #${toAccountNumber} is frozen — contact support`);
+      }
+
+      const matches = await bcrypt.compare(pin, fromAcct.pinHash);
+      if (!matches) {
+        throw ApiException.forbidden('Invalid security PIN');
+      }
+
+      const fromBalance = Number(fromAcct.balance);
+      if (fromBalance < numAmount) {
+        throw ApiException.badRequest('Insufficient balance');
+      }
+
+      const updatedFromBalance = fromBalance - numAmount;
+      const updatedToBalance = Number(toAcct.balance) + numAmount;
+
+      const updatedFrom = await tx.account.update({
+        where: { id: fromAcct.id },
+        data: { balance: updatedFromBalance },
+      });
+
+      await tx.account.update({
+        where: { id: toAcct.id },
+        data: { balance: updatedToBalance },
+      });
+
+      // Write two ledger entries (Double-entry) under same reference
+      await tx.ledgerEntry.create({
+        data: {
+          accountId: fromAcct.id,
+          type: 'DEBIT',
+          amount: numAmount,
+          balanceAfter: updatedFromBalance,
+          description: `Transfer to #${toAcct.accountNumber}`,
+          reference: ref,
+        },
+      });
+
+      await tx.ledgerEntry.create({
+        data: {
+          accountId: toAcct.id,
+          type: 'CREDIT',
+          amount: numAmount,
+          balanceAfter: updatedToBalance,
+          description: `Transfer from #${fromAcct.accountNumber}`,
+          reference: ref,
+        },
+      });
+
+      return updatedFrom;
+    });
+
+    return toAccountResponse(result);
+  },
+
+  async setFrozen(accountNumber, frozen) {
+    const acct = await prisma.account.findUnique({
+      where: { accountNumber: BigInt(accountNumber) },
+    });
+    if (!acct) {
+      throw ApiException.notFound(`Account #${accountNumber} not found`);
+    }
+    return prisma.account.update({
+      where: { id: acct.id },
+      data: { frozen: Boolean(frozen) },
+    });
+  },
+};
+
+export default accountService;
