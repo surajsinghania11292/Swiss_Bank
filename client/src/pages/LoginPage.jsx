@@ -224,5 +224,195 @@ export default function LoginPage() {
 
           <div className="auth-side__trust">
             <span className="trust-chip">
-              <svg width="13
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              256-bit encryption
+            </span>
+            <span className="trust-chip">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              RBI-style KYC checks
+            </span>
+            <span className="trust-chip">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              PCI-DSS aligned
+            </span>
+          </div>
+        </div>
+
+        <div className="auth-side__foot">
+          © {new Date().getFullYear()} Swiss Bank — demo product, not a real bank.
+        </div>
+      </aside>
+
+      {/* Right Form Container */}
+      <main className="auth-wrap-inner">
+        {/* Floating Theme Toggler */}
+        <div style={{ position: 'absolute', top: 24, right: 28, zIndex: 10 }}>
+          <div className="theme-toggle" role="group" aria-label="Theme">
+            <button
+              type="button"
+              aria-pressed={theme === 'light'}
+              onClick={() => setTheme('light')}
+              title="Light"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-pressed={theme === 'dark'}
+              onClick={() => setTheme('dark')}
+              title="Dark"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-pressed={theme === 'system'}
+              onClick={() => setTheme('system')}
+              title="System"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <path d="M8 21h8M12 17v4"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="auth-card">
+          <div className="auth-hero__brand">
+            <img src="/assets/logo.svg" alt="" />
+            <span>Swiss Bank</span>
+          </div>
+
+          {showMfa ? (
+            /* 2FA Login Challenge */
+            <div className="auth-body">
+              <div className="auth-hero">
+                <h1>Two-Factor Verification</h1>
+                <p>Hello {mfaFullName}, enter the 6-digit code from your authenticator app.</p>
+              </div>
+
+              {errorBanner && (
+                <div className="form-banner">
+                  <div className="form-banner__ic">!</div>
+                  <div>{errorBanner}</div>
+                </div>
+              )}
+
+              <form onSubmit={handleMfaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="field">
+                  <label htmlFor="mfaCode">Authenticator Code <span className="req">*</span></label>
+                  <input
+                    id="mfaCode"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="123456"
+                    className="mono"
+                    style={{ fontSize: 22, textAlign: 'center', letterSpacing: '0.3em' }}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading || mfaCode.length !== 6}>
+                  <span className="btn__label">Verify & Sign In</span>
+                  <span className="btn__spinner" />
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--block btn--sm"
+                  onClick={() => {
+                    setShowMfa(false);
+                    setErrorBanner('');
+                  }}
+                >
+                  ← Back to Login
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* Main Auth Container */
+            <div>
+              <div className="auth-hero">
+                <h1>{mode === 'login' ? 'Welcome back' : 'Create an Account'}</h1>
+                <p>{mode === 'login' ? 'Sign in to manage your accounts.' : 'Complete 4 simple steps to open your verified bank account.'}</p>
+              </div>
+
+              <div className="auth-tabs" role="tablist">
+                <button
+                  className="auth-tab"
+                  role="tab"
+                  aria-selected={mode === 'login'}
+                  onClick={() => {
+                    setMode('login');
+                    setErrorBanner('');
+                  }}
+                >
+                  Sign in
+                </button>
+                <button
+                  className="auth-tab"
+                  role="tab"
+                  aria-selected={mode === 'register'}
+                  onClick={() => {
+                    setMode('register');
+                    setErrorBanner('');
+                  }}
+                >
+                  Create account
+                </button>
+              </div>
+
+              {errorBanner && (
+                <div className="form-banner">
+                  <div className="form-banner__ic">!</div>
+                  <div>{errorBanner}</div>
+                </div>
+              )}
+
+              {mode === 'login' ? (
+                /* Login Form */
+                <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="field">
+                    <label htmlFor="loginEmail">Email <span className="req">*</span></label>
+                    <input
+                      id="loginEmail"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="loginPassword">Password <span className="req">*</span></label>
+                    <div className="field--password">
+                      <input
+                        id="loginPassword"
+                        type={showLoginPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        c
 export default LoginPage;
