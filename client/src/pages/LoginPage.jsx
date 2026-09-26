@@ -414,5 +414,312 @@ export default function LoginPage() {
                       />
                       <button
                         type="button"
-                        c
-export default LoginPage;
+                        className="field__eye"
+                        aria-pressed={showLoginPassword}
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        title="Toggle password visibility"
+                      >
+                        <svg className="eye-open" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <svg className="eye-closed" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                    <span className="btn__label">Sign in</span>
+                    <span className="btn__spinner" />
+                  </button>
+
+                  <div className="auth-demo">
+                    Demo login — <b onClick={() => fillDemo('demo@bank.app', 'demo12345')}>demo@bank.app</b> · password <b onClick={() => fillDemo('demo@bank.app', 'demo12345')}>demo12345</b>
+                    <span className="demo-sub" style={{ display: 'block', color: 'var(--text-faint)', fontSize: 11, marginTop: 2 }}>
+                      (a beneficiary, a bill payment, and a support ticket are pre-loaded)
+                    </span>
+                  </div>
+                </form>
+              ) : (
+                /* Registration Wizard */
+                <div>
+                  <div className="auth-stepper">
+                    {[1, 2, 3, 4].map((step) => (
+                      <div
+                        key={step}
+                        className={`auth-stepper__step ${regStep === step ? 'is-active' : regStep > step ? 'is-done' : ''}`}
+                      >
+                        <div className="auth-stepper__dot">{regStep > step ? '✓' : step}</div>
+                        {step < 4 && <div className="auth-stepper__line" />}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="auth-stepper__labels">
+                    <span className={`auth-stepper__label ${regStep === 1 ? 'is-active' : ''}`}>Account</span>
+                    <span className={`auth-stepper__label ${regStep === 2 ? 'is-active' : ''}`}>KYC</span>
+                    <span className={`auth-stepper__label ${regStep === 3 ? 'is-active' : ''}`}>Security</span>
+                    <span className={`auth-stepper__label ${regStep === 4 ? 'is-active' : ''}`}>Review</span>
+                  </div>
+
+                  <form onSubmit={regStep === 4 ? handleRegisterSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+                    {/* Step 1: Account Details */}
+                    {regStep === 1 && (
+                      <div className="auth-step is-active">
+                        <div className="field">
+                          <label>Full Legal Name <span className="req">*</span></label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Marcus Weber"
+                            value={regData.fullName}
+                            onChange={(e) => setRegData({ ...regData, fullName: e.target.value })}
+                            className={fieldErrors.fullName ? 'invalid' : ''}
+                            required
+                          />
+                          {fieldErrors.fullName && <div className="field__error">{fieldErrors.fullName}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Email Address <span className="req">*</span></label>
+                          <input
+                            type="email"
+                            placeholder="marcus@example.com"
+                            value={regData.email}
+                            onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                            className={fieldErrors.email ? 'invalid' : ''}
+                            required
+                          />
+                          {fieldErrors.email && <div className="field__error">{fieldErrors.email}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Create Password <span className="req">*</span></label>
+                          <div className="field--password">
+                            <input
+                              type={showRegPassword ? 'text' : 'password'}
+                              placeholder="Minimum 8 characters"
+                              value={regData.password}
+                              onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                              className={fieldErrors.password ? 'invalid' : ''}
+                              required
+                            />
+                            <button
+                              type="button"
+                              className="field__eye"
+                              aria-pressed={showRegPassword}
+                              onClick={() => setShowRegPassword(!showRegPassword)}
+                            >
+                              <svg className="eye-open" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                              <svg className="eye-closed" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                <line x1="2" y1="2" x2="22" y2="22" />
+                              </svg>
+                            </button>
+                          </div>
+                          {regData.password && (
+                            <div className="pw-strength" data-level={pwStrength}>
+                              <div className="pw-strength__bars">
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                              </div>
+                              <div className="pw-strength__label">Strength: {pwLabels[pwStrength - 1] || 'Too Weak'}</div>
+                            </div>
+                          )}
+                          {fieldErrors.password && <div className="field__error">{fieldErrors.password}</div>}
+                        </div>
+
+                        <button type="button" className="btn btn--primary btn--block" onClick={nextStep}>
+                          Continue to KYC Details →
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Step 2: KYC Information */}
+                    {regStep === 2 && (
+                      <div className="auth-step is-active">
+                        <div className="field">
+                          <label>Phone Number <span className="req">*</span></label>
+                          <input
+                            type="tel"
+                            placeholder="9876543210"
+                            value={regData.phone}
+                            onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
+                            className={fieldErrors.phone ? 'invalid' : ''}
+                            required
+                          />
+                          {fieldErrors.phone && <div className="field__error">{fieldErrors.phone}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Date of Birth (Must be 18+) <span className="req">*</span></label>
+                          <input
+                            type="date"
+                            value={regData.dateOfBirth}
+                            onChange={(e) => setRegData({ ...regData, dateOfBirth: e.target.value })}
+                            className={fieldErrors.dateOfBirth ? 'invalid' : ''}
+                            required
+                          />
+                          {fieldErrors.dateOfBirth && <div className="field__error">{fieldErrors.dateOfBirth}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Tax Identification / PAN / National ID <span className="req">*</span></label>
+                          <input
+                            type="text"
+                            placeholder="ABCDE1234F"
+                            className="mono"
+                            style={{ textTransform: 'uppercase' }}
+                            value={regData.panNumber}
+                            onChange={(e) => setRegData({ ...regData, panNumber: e.target.value.toUpperCase() })}
+                            required
+                          />
+                          {fieldErrors.panNumber && <div className="field__error">{fieldErrors.panNumber}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Residential Address <span className="req">*</span></label>
+                          <textarea
+                            placeholder="Street, City, Postal Code, Country"
+                            value={regData.address}
+                            onChange={(e) => setRegData({ ...regData, address: e.target.value })}
+                            required
+                          />
+                          {fieldErrors.address && <div className="field__error">{fieldErrors.address}</div>}
+                        </div>
+
+                        <div className="auth-step__nav">
+                          <button type="button" className="btn btn--ghost" onClick={prevStep}>
+                            ← Back
+                          </button>
+                          <button type="button" className="btn btn--primary" onClick={nextStep}>
+                            Continue to PIN →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Security PIN & Terms */}
+                    {regStep === 3 && (
+                      <div className="auth-step is-active">
+                        <div className="field">
+                          <label>Transaction Security PIN (4–6 Digits) <span className="req">*</span></label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="••••"
+                            className="mono"
+                            style={{ textAlign: 'center', fontSize: 20, letterSpacing: '0.2em' }}
+                            value={regData.pin}
+                            onChange={(e) => setRegData({ ...regData, pin: e.target.value.replace(/\D/g, '') })}
+                            required
+                          />
+                          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                            Used to authorize transfers, deposits, and withdrawals.
+                          </span>
+                          {fieldErrors.pin && <div className="field__error">{fieldErrors.pin}</div>}
+                        </div>
+
+                        <div className="field">
+                          <label>Confirm Security PIN <span className="req">*</span></label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="••••"
+                            className="mono"
+                            style={{ textAlign: 'center', fontSize: 20, letterSpacing: '0.2em' }}
+                            value={regData.pinConfirm}
+                            onChange={(e) => setRegData({ ...regData, pinConfirm: e.target.value.replace(/\D/g, '') })}
+                            required
+                          />
+                          {fieldErrors.pinConfirm && <div className="field__error">{fieldErrors.pinConfirm}</div>}
+                        </div>
+
+                        <div className="consent-row">
+                          <input
+                            id="consentCheck"
+                            type="checkbox"
+                            checked={regData.consent}
+                            onChange={(e) => setRegData({ ...regData, consent: e.target.checked })}
+                          />
+                          <label htmlFor="consentCheck">
+                            I accept the Swiss Bank Account Terms, Privacy Policy, and Sovereign Deposit Protections.
+                          </label>
+                        </div>
+                        {fieldErrors.consent && <div className="field__error">{fieldErrors.consent}</div>}
+
+                        <div className="auth-step__nav">
+                          <button type="button" className="btn btn--ghost" onClick={prevStep}>
+                            ← Back
+                          </button>
+                          <button type="button" className="btn btn--primary" onClick={nextStep}>
+                            Review Application →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 4: Summary & Submit */}
+                    {regStep === 4 && (
+                      <div className="auth-step is-active">
+                        <div className="review-list">
+                          <div className="review-list__row">
+                            <span>Account Holder</span>
+                            <span>{regData.fullName}</span>
+                          </div>
+                          <div className="review-list__row">
+                            <span>Email</span>
+                            <span>{regData.email}</span>
+                          </div>
+                          <div className="review-list__row">
+                            <span>Phone</span>
+                            <span>{regData.phone}</span>
+                          </div>
+                          <div className="review-list__row">
+                            <span>Tax ID / PAN</span>
+                            <span>{regData.panNumber}</span>
+                          </div>
+                          <div className="review-list__row">
+                            <span>Address</span>
+                            <span>{regData.address}</span>
+                          </div>
+                          <div className="review-list__row">
+                            <span>Initial Deposit</span>
+                            <span style={{ color: 'var(--credit)' }}>₹5,000.00 (Standard Tier)</span>
+                          </div>
+                        </div>
+
+                        <div className="auth-step__nav" style={{ marginTop: 12 }}>
+                          <button type="button" className="btn btn--ghost" onClick={prevStep} disabled={loading}>
+                            ← Edit
+                          </button>
+                          <button type="submit" className={`btn btn--primary ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                            <span className="btn__label">Open Bank Account</span>
+                            <span className="btn__spinner" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
