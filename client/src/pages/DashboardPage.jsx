@@ -526,5 +526,191 @@ export default function DashboardPage() {
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
             Profile &amp; KYC
-  
+          </button>
+
+          <button
+            className={`nav__item ${activeView === 'support' ? 'is-active' : ''}`}
+            onClick={() => { setActiveView('support'); setSidebarOpen(false); }}
+            type="button"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.6-2.2 2-2.5 3.4M12 17h.01"/></svg>
+            Support
+          </button>
+        </nav>
+
+        <div className="sidebar__foot">
+          <div className="sidebar__helpline">
+            24×7 Customer Care
+            <b>1800-000-0000</b>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Column */}
+      <div className="main-col">
+        {/* Top Appbar */}
+        <header className="appbar">
+          <button
+            className="icon-toggle"
+            id="menuToggle"
+            aria-label="Menu"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+
+          <div className="appbar__title">
+            {activeView === 'dashboard' && 'Dashboard'}
+            {activeView === 'accounts' && 'Accounts'}
+            {activeView === 'transfers' && 'Transfers'}
+            {activeView === 'deposits' && 'Deposits & Loans'}
+            {activeView === 'cards' && 'Cards'}
+            {activeView === 'billpay' && 'Bill Pay & Recharge'}
+            {activeView === 'beneficiaries' && 'Beneficiaries'}
+            {activeView === 'profile' && 'Profile & KYC'}
+            {activeView === 'support' && 'Support'}
+          </div>
+
+          <div className="appbar__right">
+            {/* Notification Bell Dropdown */}
+            <div className="dropdown">
+              <button
+                className="icon-toggle"
+                aria-label="Notifications"
+                title="Notifications"
+                onClick={() => setNotifOpen(!notifOpen)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </button>
+              <div className={`dropdown__panel ${notifOpen ? 'open' : ''}`}>
+                <div className="dropdown__head">Notifications</div>
+                <div className="dropdown__empty">You're all caught up.</div>
+              </div>
+            </div>
+
+            {/* Theme Toggle with exact SVGs */}
+            <div className="theme-toggle" role="group" aria-label="Theme">
+              <button
+                type="button"
+                aria-pressed={theme === 'light'}
+                onClick={() => setTheme('light')}
+                title="Light"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              </button>
+              <button
+                type="button"
+                aria-pressed={theme === 'dark'}
+                onClick={() => setTheme('dark')}
+                title="Dark"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </button>
+              <button
+                type="button"
+                aria-pressed={theme === 'system'}
+                onClick={() => setTheme('system')}
+                title="System"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </button>
+            </div>
+
+            {/* Signed in as demo user & Sign out */}
+            <div className="user-chip">
+              <span>Signed in as</span>
+              <b>{user?.fullName || 'Demo User'}</b>
+            </div>
+
+            <button
+              className="btn btn--ghost btn--sm"
+              onClick={async () => {
+                await logout();
+                navigate('/login');
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        {/* View Content */}
+        <main className="wrap">
+          {/* 1. DASHBOARD VIEW */}
+          {activeView === 'dashboard' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Welcome back{user ? `, ${user.fullName.split(' ')[0]}` : ''}</h1>
+                  <p className="section-sub">Here's what's happening with your money today.</p>
+                </div>
+              </div>
+
+              {/* Stat Grid (4 Cards) */}
+              <div className="stat-grid">
+                <div className="stat-card">
+                  <div className="stat-card__label">Total balance</div>
+                  <div className="stat-card__value"><span className="cur">₹</span>{money(totalBalance)}</div>
+                  <div className="stat-card__meta">{accounts.length} account{accounts.length === 1 ? '' : 's'}</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-card__label">Money in (recent)</div>
+                  <div className="stat-card__value"><span className="cur">₹</span>{money(recentMoneyIn || 62500)}</div>
+                  <div className="stat-card__meta">Across recent activity</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-card__label">Money out (recent)</div>
+                  <div className="stat-card__value"><span className="cur">₹</span>{money(recentMoneyOut || 1180)}</div>
+                  <div className="stat-card__meta">Across recent activity</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-card__label">Saved beneficiaries</div>
+                  <div className="stat-card__value">{beneficiaries.length}</div>
+                  <div className="stat-card__meta">Ready for quick transfer</div>
+                </div>
+              </div>
+
+              {/* Promo Banner */}
+              <div className="promo-banner">
+                <div>
+                  <div className="promo-banner__title">Grow your savings with a Fixed Deposit</div>
+                  <div className="promo-banner__sub">
+                    Earn up to 7.25% p.a. Use the deposit calculator to see how much your money can grow.
+                  </div>
+                </div>
+                <button className="btn btn--primary btn--sm" onClick={() => setActiveView('deposits')}>
+                  Explore deposits
+                </button>
+              </div>
+
+              {/* Quick Actions Header & Grid */}
+              <div className="row-between" style={{ marginBottom: 12 }}>
+                <h2 className="section-title" style={{ fontSize: 18 }}>Quick actions</h2>
+              </div>
+              <div className="quick-grid">
+                <div className="quick-tile" onClick={() => setActiveView('transfers')}>
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></span>
+                  <span className="quick-tile__label">Transfer</span>
+                </div>
+                <div className="quick-tile" onClick={() => setModalOpen('deposit')}>
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+                  <span className="quick-tile__label">Deposit</span>
+                </div>
+                <div className="quick-tile" onClick={() => setModalOpen('withdraw')}>
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>
+                  <span className="quick-tile__label">Withdraw</span>
+                </div>
+                <div className="quick-tile" onClick={() => setActiveView('billpay')}>
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
+                  <span className="quick-tile__label">Pay bills</span>
+                </div>
+                <div className="quick-tile" onClick={() => setModalOpen('addBeneficiary')}>
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                  <span className="quick-tile__label">Add payee</span>
+                </div>
+                <div className="quick-tile" onClick={() => setActiveView('cards')}>
+                  <span className="quick-tile__ic"><
 export default DashboardPage;
