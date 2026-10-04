@@ -712,5 +712,203 @@ export default function DashboardPage() {
                   <span className="quick-tile__label">Add payee</span>
                 </div>
                 <div className="quick-tile" onClick={() => setActiveView('cards')}>
-                  <span className="quick-tile__ic"><
+                  <span className="quick-tile__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg></span>
+                  <span className="quick-tile__label">Manage cards</span>
+                </div>
+              </div>
+
+              {/* Your Accounts Rail */}
+              <div className="row-between" style={{ marginBottom: 12 }}>
+                <h2 className="section-title" style={{ fontSize: 18 }}>Your accounts</h2>
+              </div>
+              <div className="cards-rail">
+                {accounts.map((a) => (
+                  <div
+                    key={a.id}
+                    className={`bank-card ${a.accountNumber === activeAccount?.accountNumber ? 'is-active' : ''}`}
+                    onClick={() => setActiveAccount(a)}
+                  >
+                    <div className="bank-card__top">
+                      <span className="bank-card__label"><img src="/assets/logo.svg" alt="" /> Swiss Bank</span>
+                      <span className="bank-card__chip" />
+                    </div>
+                    <div className="bank-card__balance"><span className="cur">₹</span>{money(a.balance)}</div>
+                    <div>
+                      <div className="bank-card__holder">{a.holderName}</div>
+                      <div className="bank-card__number">{fmtAcct(a.accountNumber)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recent Activity Table */}
+              <div className="statement" style={{ marginTop: 24 }}>
+                <div className="statement__head">
+                  <div className="statement__title">Recent activity</div>
+                  <button className="btn btn--ghost btn--sm" onClick={() => setActiveView('accounts')}>
+                    View full statement
+                  </button>
+                </div>
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Date</th>
+                        <th className="num">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allRecentEntries.length === 0 ? (
+                        <tr>
+                          <td colSpan="3" className="empty-hint">No recent transactions recorded.</td>
+                        </tr>
+                      ) : (
+                        allRecentEntries.map((e) => (
+                          <tr key={e.id}>
+                            <td>
+                              <div className="txn-desc">
+                                <span className="txn-icon">{e.type === 'CREDIT' ? '↑' : '↓'}</span>
+                                <div className="txn-desc__meta">
+                                  <strong>{e.description}</strong>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="txn-date">{fmtDate(e.createdAt)}</td>
+                            <td className={`num amt ${e.type === 'CREDIT' ? 'amt--credit' : 'amt--debit'}`}>
+                              {e.type === 'CREDIT' ? '+' : '-'}₹{money(e.amount)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 2. ACCOUNTS VIEW */}
+          {activeView === 'accounts' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Your accounts</h1>
+                  <p className="section-sub">Select an account to view its statement.</p>
+                </div>
+                <button className="btn btn--primary btn--sm" onClick={() => setModalOpen('openAccount')}>
+                  + Open new account
+                </button>
+              </div>
+
+              <div className="cards-rail">
+                {accounts.map((a) => (
+                  <div
+                    key={a.id}
+                    className={`bank-card ${a.accountNumber === activeAccount?.accountNumber ? 'is-active' : ''}`}
+                    onClick={() => setActiveAccount(a)}
+                  >
+                    <div className="bank-card__top">
+                      <span className="bank-card__label"><img src="/assets/logo.svg" alt="" /> Swiss Bank</span>
+                      <span className="bank-card__chip" />
+                    </div>
+                    <div className="bank-card__balance"><span className="cur">₹</span>{money(a.balance)}</div>
+                    <div>
+                      <div className="bank-card__holder">{a.holderName}</div>
+                      <div className="bank-card__number">{fmtAcct(a.accountNumber)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {activeAccount && (
+                <div>
+                  <div className="actions-bar">
+                    <button className="btn btn--primary btn--sm" onClick={() => setModalOpen('deposit')}>Deposit</button>
+                    <button className="btn btn--ghost btn--sm" onClick={() => setModalOpen('withdraw')}>Withdraw</button>
+                    <button className="btn btn--ghost btn--sm" onClick={() => { setTransferForm((f) => ({ ...f, fromAccountNumber: activeAccount.accountNumber })); setActiveView('transfers'); }}>Transfer</button>
+                    <button className="btn btn--ghost btn--sm" onClick={() => handleDownloadCsv(activeAccount.accountNumber)}>Download statement (CSV)</button>
+                  </div>
+
+                  <div className="statement">
+                    <div className="statement__head">
+                      <div>
+                        <div className="statement__title">Statement</div>
+                        <div className="statement__acct">Account #{fmtAcct(activeAccount.accountNumber)} · Balance: ₹{money(activeAccount.balance)}</div>
+                      </div>
+                    </div>
+                    <div className="table-scroll">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Description</th>
+                            <th>Date</th>
+                            <th className="num">Amount</th>
+                            <th className="num">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledgerEntries.map((e) => (
+                            <tr key={e.id}>
+                              <td>
+                                <div className="txn-desc">
+                                  <span className="txn-icon">{e.type === 'CREDIT' ? '↑' : '↓'}</span>
+                                  <div className="txn-desc__meta">
+                                    <strong>{e.description}</strong>
+                                    <span className="txn-desc__ref">{e.reference}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="txn-date">{fmtDate(e.createdAt)}</td>
+                              <td className={`num amt ${e.type === 'CREDIT' ? 'amt--credit' : 'amt--debit'}`}>
+                                {e.type === 'CREDIT' ? '+' : '-'}₹{money(e.amount)}
+                              </td>
+                              <td className="num amt amt--balance">₹{money(e.balanceAfter)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 3. TRANSFERS VIEW */}
+          {activeView === 'transfers' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Transfers</h1>
+                  <p className="section-sub">Move money between your accounts or to a saved payee.</p>
+                </div>
+              </div>
+
+              <div className="grid-2">
+                <div className="panel">
+                  <div className="panel__title">New transfer</div>
+                  <div className="panel__sub">All transfers are secured with your account PIN.</div>
+
+                  <form onSubmit={handleTransfer} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="field">
+                      <label>From account <span className="req">*</span></label>
+                      <select
+                        value={transferForm.fromAccountNumber}
+                        onChange={(e) => setTransferForm({ ...transferForm, fromAccountNumber: e.target.value })}
+                        required
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.accountNumber}>
+                            #{fmtAcct(a.accountNumber)} — {a.holderName} (₹{money(a.balance)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>To account number <span className="req">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1029384
 export default DashboardPage;
