@@ -910,5 +910,228 @@ export default function DashboardPage() {
                       <label>To account number <span className="req">*</span></label>
                       <input
                         type="text"
-                        placeholder="e.g. 1029384
+                        placeholder="e.g. 10293847"
+                        className="mono"
+                        value={transferForm.toAccountNumber}
+                        onChange={(e) => setTransferForm({ ...transferForm, toAccountNumber: e.target.value.replace(/\D/g, '') })}
+                        required
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Amount (₹) <span className="req">*</span></label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        placeholder="5000.00"
+                        className="mono"
+                        value={transferForm.amount}
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Security PIN <span className="req">*</span></label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="••••"
+                        className="mono"
+                        value={transferForm.pin}
+                        onChange={(e) => setTransferForm({ ...transferForm, pin: e.target.value.replace(/\D/g, '') })}
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                      <span className="btn__label">Authorize Transfer</span>
+                      <span className="btn__spinner" />
+                    </button>
+                  </form>
+                </div>
+
+                <div className="panel">
+                  <div className="panel__title">Send to a beneficiary</div>
+                  <div className="panel__sub">Quick-transfer to one of your saved payees.</div>
+
+                  <div>
+                    {beneficiaries.length === 0 ? (
+                      <div className="empty-hint">No saved payees yet.</div>
+                    ) : (
+                      beneficiaries.map((b) => (
+                        <div
+                          key={b.id}
+                          className="list-row"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            setTransferForm((f) => ({ ...f, toAccountNumber: b.accountNumber }));
+                            toast(`Selected ${b.name}`);
+                          }}
+                        >
+                          <div className="list-row__avatar">{b.name[0]}</div>
+                          <div>
+                            <div className="list-row__name">{b.name} {b.nickname ? `(${b.nickname})` : ''}</div>
+                            <div className="list-row__meta">#{fmtAcct(b.accountNumber)}</div>
+                          </div>
+                          <div className="list-row__actions">
+                            <button className="btn btn--ghost btn--sm">Send →</button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 4. DEPOSITS & LOANS VIEW */}
+          {activeView === 'deposits' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Deposits &amp; Loans</h1>
+                  <p className="section-sub">Plan your savings and borrowing — calculators update instantly.</p>
+                </div>
+              </div>
+
+              <div className="grid-2">
+                {/* FD / RD Calculator */}
+                <div className="panel">
+                  <div className="panel__title">Fixed / Recurring Deposit calculator</div>
+                  <div className="panel__sub">Estimate maturity value on a lump-sum or monthly deposit.</div>
+
+                  <div className="tag-select">
+                    <button type="button" className={fdType === 'fd' ? 'is-active' : ''} onClick={() => setFdType('fd')}>
+                      Fixed Deposit
+                    </button>
+                    <button type="button" className={fdType === 'rd' ? 'is-active' : ''} onClick={() => setFdType('rd')}>
+                      Recurring Deposit
+                    </button>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 14 }}>
+                    <label>{fdType === 'fd' ? 'Deposit amount' : 'Monthly deposit'} <span className="req">*</span></label>
+                    <input
+                      type="number"
+                      className="mono"
+                      value={fdAmount}
+                      onChange={(e) => setFdAmount(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label>Tenure (months): <b>{fdTenure}</b></label>
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min="3"
+                        max="120"
+                        value={fdTenure}
+                        onChange={(e) => setFdTenure(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label>Interest rate (% p.a.): <b>{fdRate.toFixed(2)}</b></label>
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min="3"
+                        max="9"
+                        step="0.05"
+                        value={fdRate}
+                        onChange={(e) => setFdRate(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="result-strip">
+                    <div className="result-tile">
+                      <div className="result-tile__label">Invested</div>
+                      <div className="result-tile__value">₹{money(fdRes.invested)}</div>
+                    </div>
+                    <div className="result-tile">
+                      <div className="result-tile__label">Interest earned</div>
+                      <div className="result-tile__value">₹{money(fdRes.interest)}</div>
+                    </div>
+                    <div className="result-tile">
+                      <div className="result-tile__label">Maturity value</div>
+                      <div className="result-tile__value">₹{money(fdRes.maturity)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Loan EMI Calculator */}
+                <div className="panel">
+                  <div className="panel__title">Loan EMI calculator</div>
+                  <div className="panel__sub">Estimate your monthly instalment on a personal, home, or auto loan.</div>
+
+                  <div className="tag-select">
+                    <button
+                      type="button"
+                      className={loanType === 'Personal' ? 'is-active' : ''}
+                      onClick={() => { setLoanType('Personal'); setLoanRate(10.5); }}
+                    >
+                      Personal
+                    </button>
+                    <button
+                      type="button"
+                      className={loanType === 'Home' ? 'is-active' : ''}
+                      onClick={() => { setLoanType('Home'); setLoanRate(8.4); }}
+                    >
+                      Home
+                    </button>
+                    <button
+                      type="button"
+                      className={loanType === 'Auto' ? 'is-active' : ''}
+                      onClick={() => { setLoanType('Auto'); setLoanRate(9.2); }}
+                    >
+                      Auto
+                    </button>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 14 }}>
+                    <label>Loan amount <span className="req">*</span></label>
+                    <input
+                      type="number"
+                      className="mono"
+                      value={loanAmount}
+                      onChange={(e) => setLoanAmount(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label>Tenure (months): <b>{loanTenure}</b></label>
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min="6"
+                        max="360"
+                        value={loanTenure}
+                        onChange={(e) => setLoanTenure(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label>Interest rate (% p.a.): <b>{loanRate.toFixed(2)}</b></label>
+                    <div className="range-row">
+                      <input
+                        type="range"
+                        min="6"
+                        max="18"
+                        step="0.05"
+                        value={loanRate}
+                        onChange={(e) => setLoanRate(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="result-strip">
+                    <div className="resu
 export default DashboardPage;
