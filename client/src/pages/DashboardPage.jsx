@@ -1133,5 +1133,216 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="result-strip">
-                    <div className="resu
+                    <div className="result-tile">
+                      <div className="result-tile__label">Monthly EMI</div>
+                      <div className="result-tile__value">₹{money(loanRes.emi)}</div>
+                    </div>
+                    <div className="result-tile">
+                      <div className="result-tile__label">Total interest</div>
+                      <div className="result-tile__value">₹{money(loanRes.interest)}</div>
+                    </div>
+                    <div className="result-tile">
+                      <div className="result-tile__label">Total payment</div>
+                      <div className="result-tile__value">₹{money(loanRes.total)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="note-strip" style={{ marginTop: 18 }}>Rates shown are illustrative defaults and run entirely in your browser.</p>
+            </section>
+          )}
+
+          {/* 5. CARDS VIEW */}
+          {activeView === 'cards' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Cards</h1>
+                  <p className="section-sub">Manage your debit cards, freeze them instantly, or request a new one.</p>
+                </div>
+              </div>
+
+              <div className="cards-view-grid">
+                {cards.map((c) => (
+                  <div key={c.accountNumber} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div className={`debit-card ${c.frozen ? 'is-frozen' : ''}`}>
+                      <div className="debit-card__top">
+                        <div className="debit-card__brand">
+                          <img src="/assets/logo.svg" alt="" />
+                          <span>Swiss Bank</span>
+                        </div>
+                        <div className="debit-card__network">{c.network}</div>
+                      </div>
+
+                      <div className="debit-card__chip" />
+
+                      <div className="debit-card__number">
+                        •••• •••• •••• {String(c.accountNumber).slice(-4)}
+                      </div>
+
+                      <div className="debit-card__bottom">
+                        <div className="debit-card__holder">{c.holderName}</div>
+                        <div className="debit-card__exp">
+                          <span>EXPIRES</span>
+                          {String(c.expiryMonth).padStart(2, '0')}/{String(c.expiryYear).slice(-2)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card-controls">
+                      <div className="card-controls__row">
+                        <span>Freeze Debit Card</span>
+                        <label className="switch">
+                          <input
+                            type="checkbox"
+                            checked={c.frozen}
+                            onChange={(e) => handleCardToggle(c.accountNumber, { frozen: e.target.checked })}
+                          />
+                          <span className="switch__track" />
+                        </label>
+                      </div>
+
+                      <div className="card-controls__row">
+                        <span>Contactless NFC</span>
+                        <label className="switch">
+                          <input
+                            type="checkbox"
+                            checked={c.contactlessEnabled}
+                            onChange={(e) => handleCardToggle(c.accountNumber, { contactlessEnabled: e.target.checked })}
+                          />
+                          <span className="switch__track" />
+                        </label>
+                      </div>
+
+                      <div className="card-controls__row">
+                        <span>Online E-Commerce</span>
+                        <label className="switch">
+                          <input
+                            type="checkbox"
+                            checked={c.onlineEnabled}
+                            onChange={(e) => handleCardToggle(c.accountNumber, { onlineEnabled: e.target.checked })}
+                          />
+                          <span className="switch__track" />
+                        </label>
+                      </div>
+
+                      <div style={{ marginTop: 8 }}>
+                        {c.replacementRequestedAt ? (
+                          <span className="status-pill status-pill--open">
+                            Replacement requested on {fmtDate(c.replacementRequestedAt)}
+                          </span>
+                        ) : (
+                          <button
+                            className="btn btn--ghost btn--block btn--sm"
+                            onClick={() => handleCardReplacement(c.accountNumber)}
+                          >
+                            Request Replacement Card
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 6. BILL PAY VIEW */}
+          {activeView === 'billpay' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Bill Pay &amp; Recharge</h1>
+                  <p className="section-sub">Pay a biller directly from one of your accounts — recorded in your statement.</p>
+                </div>
+              </div>
+
+              <div className="grid-2">
+                <div className="panel">
+                  <div className="panel__title">Pay a bill</div>
+                  <div className="panel__sub">Select a category, enter details, and confirm with your PIN.</div>
+
+                  <form onSubmit={handleBillPay} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="field">
+                      <label>Biller category <span className="req">*</span></label>
+                      <select
+                        value={billForm.category}
+                        onChange={(e) => setBillForm({ ...billForm, category: e.target.value })}
+                      >
+                        <option>Electricity</option>
+                        <option>Mobile Recharge</option>
+                        <option>DTH / Cable</option>
+                        <option>Water Bill</option>
+                        <option>Broadband / Wi-Fi</option>
+                        <option>Gas Booking</option>
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Consumer / mobile number <span className="req">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 9876543210"
+                        className="mono"
+                        value={billForm.consumer}
+                        onChange={(e) => setBillForm({ ...billForm, consumer: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Pay from account <span className="req">*</span></label>
+                      <select
+                        value={billForm.accountNumber}
+                        onChange={(e) => setBillForm({ ...billForm, accountNumber: e.target.value })}
+                        required
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.accountNumber}>#{fmtAcct(a.accountNumber)} (₹{money(a.balance)})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Amount <span className="req">*</span></label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="1180.00"
+                        className="mono"
+                        value={billForm.amount}
+                        onChange={(e) => setBillForm({ ...billForm, amount: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Security PIN <span className="req">*</span></label>
+                      <input
+                        type="password"
+                        maxLength={6}
+                        placeholder="••••"
+                        className="mono"
+                        value={billForm.pin}
+                        onChange={(e) => setBillForm({ ...billForm, pin: e.target.value.replace(/\D/g, '') })}
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                      <span className="btn__label">Pay bill</span>
+                      <span className="btn__spinner" />
+                    </button>
+                  </form>
+                </div>
+
+                <div className="panel">
+                  <div className="panel__title">Recent bill payments</div>
+                  <div className="panel__sub">Payments recorded on your accounts.</div>
+
+                  <div>
+                    {billHistory.length === 0 ? (
+                      <div className="empty-hint">No bill payments yet.</div>
+                    ) : (
+                      billHistory.map((b) =
 export default DashboardPage;
