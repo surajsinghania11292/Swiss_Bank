@@ -1344,5 +1344,152 @@ export default function DashboardPage() {
                     {billHistory.length === 0 ? (
                       <div className="empty-hint">No bill payments yet.</div>
                     ) : (
-                      billHistory.map((b) =
+                      billHistory.map((b) => (
+                        <div key={b.id} className="list-row">
+                          <div className="list-row__avatar">⚡</div>
+                          <div>
+                            <div className="list-row__name">{b.category} · {b.consumer}</div>
+                            <div className="list-row__meta">{b.reference} · {fmtDate(b.createdAt)}</div>
+                          </div>
+                          <div className="list-row__actions">
+                            <span className="amt amt--debit">-₹{money(b.amount)}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 7. BENEFICIARIES VIEW */}
+          {activeView === 'beneficiaries' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Beneficiaries</h1>
+                  <p className="section-sub">Save payees for faster transfers next time.</p>
+                </div>
+                <button className="btn btn--primary btn--sm" onClick={() => setModalOpen('addBeneficiary')}>
+                  Add beneficiary
+                </button>
+              </div>
+
+              <div className="panel">
+                {beneficiaries.length === 0 ? (
+                  <div className="empty-hint">No beneficiaries saved yet.</div>
+                ) : (
+                  beneficiaries.map((b) => (
+                    <div key={b.id} className="list-row">
+                      <div className="list-row__avatar">{b.name[0]}</div>
+                      <div>
+                        <div className="list-row__name">{b.name} {b.nickname ? `(${b.nickname})` : ''}</div>
+                        <div className="list-row__meta">Account #{fmtAcct(b.accountNumber)}</div>
+                      </div>
+                      <div className="list-row__actions">
+                        <button
+                          className="btn btn--soft btn--sm"
+                          onClick={() => {
+                            setTransferForm((f) => ({ ...f, toAccountNumber: b.accountNumber }));
+                            setActiveView('transfers');
+                          }}
+                        >
+                          Transfer →
+                        </button>
+                        <button
+                          className="btn btn--danger btn--sm"
+                          onClick={() => handleDeleteBeneficiary(b.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* 8. PROFILE & KYC VIEW */}
+          {activeView === 'profile' && (
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Profile &amp; KYC</h1>
+                  <p className="section-sub">Your registered details.</p>
+                </div>
+                <span className="kyc-badge">✓ KYC verified</span>
+              </div>
+
+              <div className="panel">
+                <div className="panel__title">Personal details</div>
+                <div className="panel__sub">Official account holder information.</div>
+
+                <div className="profile-grid">
+                  <div className="profile-row"><label>Full name</label><div className="val">{user?.fullName}</div></div>
+                  <div className="profile-row"><label>Email</label><div className="val">{user?.email}</div></div>
+                  <div className="profile-row"><label>Registered mobile</label><div className="val">{user?.phone || '—'}</div></div>
+                  <div className="profile-row"><label>Customer ID</label><div className="val mono">CUST-00{user?.id}</div></div>
+                  <div className="profile-row"><label>Date of birth</label><div className="val">{user?.dateOfBirth ? fmtDate(user.dateOfBirth) : '—'}</div></div>
+                  <div className="profile-row"><label>PAN</label><div className="val mono">{user?.panNumber || '—'}</div></div>
+                  <div className="profile-row"><label>Address on file</label><div className="val">{user?.address || '—'}</div></div>
+                  <div className="profile-row"><label>Communication preference</label><div className="val">Email &amp; SMS</div></div>
+                </div>
+                <div className="note-strip">Profile fields reflect what you provided at sign-up — no personal data is shared beyond this app.</div>
+              </div>
+
+              <div className="panel" style={{ marginTop: 20 }}>
+                <div className="panel__title">Two-factor authentication</div>
+                <div className="panel__sub">Add an authenticator-app code on top of your password for sign-in and large transfers.</div>
+
+                {user?.totpEnabled ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="status-pill status-pill--active">Enabled</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Authenticator app active</span>
+                  </div>
+                ) : (
+                  <div>
+                    {!showTwofaSetup ? (
+                      <div className="row-between" style={{ gap: 12 }}>
+                        <span className="status-pill status-pill--frozen">Disabled</span>
+                        <button className="btn btn--primary btn--sm" onClick={handleStart2fa}>Enable 2FA</button>
+                      </div>
+                    ) : (
+                      <div style={{ maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div className="note-strip">Add this key to Google Authenticator or Authy, then enter the 6-digit code.</div>
+                        <div className="field">
+                          <label>Manual entry key</label>
+                          <input className="mono" value={twofaSecret} readOnly />
+                        </div>
+                        <form onSubmit={handleEnable2fa} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div className="field">
+                            <label>6-digit code from your app <span className="req">*</span></label>
+                            <input
+                              type="text"
+                              maxLength={6}
+                              placeholder="000000"
+                              className="mono"
+                              style={{ letterSpacing: '0.25em', textAlign: 'center' }}
+                              value={twofaCode}
+                              onChange={(e) => setTwofaCode(e.target.value.replace(/\D/g, ''))}
+                              required
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: 10 }}>
+                            <button type="submit" className="btn btn--primary btn--sm" disabled={loading || twofaCode.length !== 6}>Verify &amp; Activate</button>
+                            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setShowTwofaSetup(false)}>Cancel</button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* 9. SUPPORT VIEW */}
+          {activeView === 'support' && (
+            <section className="view is-act
 export default DashboardPage;
