@@ -1491,5 +1491,300 @@ export default function DashboardPage() {
 
           {/* 9. SUPPORT VIEW */}
           {activeView === 'support' && (
-            <section className="view is-act
-export default DashboardPage;
+            <section className="view is-active view-panel">
+              <div className="row-between">
+                <div>
+                  <h1 className="section-title">Support</h1>
+                  <p className="section-sub">Get help with your account or raise a query with our operations desk.</p>
+                </div>
+              </div>
+
+              <div className="grid-2">
+                <div className="panel">
+                  <div className="panel__title">Raise a ticket</div>
+                  <div className="panel__sub">We'll review and respond promptly.</div>
+
+                  <form onSubmit={handleRaiseTicket} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="field">
+                      <label>Subject</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Question about card replacement"
+                        value={ticketForm.subject}
+                        onChange={(e) => setTicketForm({ ...ticketForm, subject: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Message</label>
+                      <textarea
+                        placeholder="Describe what you need help with..."
+                        value={ticketForm.message}
+                        onChange={(e) => setTicketForm({ ...ticketForm, message: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                      <span className="btn__label">Submit ticket</span>
+                      <span className="btn__spinner" />
+                    </button>
+                  </form>
+                </div>
+
+                <div className="panel">
+                  <div className="panel__title">Your tickets</div>
+                  <div className="panel__sub">Track support conversations.</div>
+
+                  <div>
+                    {tickets.length === 0 ? (
+                      <div className="empty-hint">No support tickets found.</div>
+                    ) : (
+                      tickets.map((t) => (
+                        <div key={t.id} className="list-row">
+                          <div className="list-row__avatar">🎫</div>
+                          <div>
+                            <div className="list-row__name">{t.subject}</div>
+                            <div style={{ fontSize: 12.5, color: 'var(--text-dim)', margin: '3px 0' }}>{t.message}</div>
+                            <div className="list-row__meta">{t.ticketNumber} · {fmtDate(t.createdAt)}</div>
+                          </div>
+                          <div className="list-row__actions">
+                            <span className={`status-pill ${t.status === 'OPEN' ? 'status-pill--open' : 'status-pill--closed'}`}>
+                              {t.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+
+      {/* Modal: Deposit */}
+      {modalOpen === 'deposit' && (
+        <div className="overlay open">
+          <div className="modal">
+            <div className="modal__head">
+              <div className="modal__title">Deposit funds</div>
+              <button className="modal__close" onClick={() => setModalOpen(null)}>✕</button>
+            </div>
+            <form onSubmit={handleDeposit} className="modal__body">
+              <div className="field">
+                <label>Account</label>
+                <select
+                  value={depositForm.accountNumber}
+                  onChange={(e) => setDepositForm({ ...depositForm, accountNumber: e.target.value })}
+                  required
+                >
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.accountNumber}>#{fmtAcct(a.accountNumber)} ({a.holderName})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Amount (₹)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="5000.00"
+                  className="mono"
+                  value={depositForm.amount}
+                  onChange={(e) => setDepositForm({ ...depositForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Security PIN</label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  placeholder="••••"
+                  className="mono"
+                  value={depositForm.pin}
+                  onChange={(e) => setDepositForm({ ...depositForm, pin: e.target.value.replace(/\D/g, '') })}
+                  required
+                />
+              </div>
+
+              <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                <span className="btn__label">Complete deposit</span>
+                <span className="btn__spinner" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Withdraw */}
+      {modalOpen === 'withdraw' && (
+        <div className="overlay open">
+          <div className="modal">
+            <div className="modal__head">
+              <div className="modal__title">Withdraw funds</div>
+              <button className="modal__close" onClick={() => setModalOpen(null)}>✕</button>
+            </div>
+            <form onSubmit={handleWithdraw} className="modal__body">
+              <div className="field">
+                <label>Account</label>
+                <select
+                  value={withdrawForm.accountNumber}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, accountNumber: e.target.value })}
+                  required
+                >
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.accountNumber}>#{fmtAcct(a.accountNumber)} (₹{money(a.balance)})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Amount (₹)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="1000.00"
+                  className="mono"
+                  value={withdrawForm.amount}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Security PIN</label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  placeholder="••••"
+                  className="mono"
+                  value={withdrawForm.pin}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, pin: e.target.value.replace(/\D/g, '') })}
+                  required
+                />
+              </div>
+
+              <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                <span className="btn__label">Authorize withdrawal</span>
+                <span className="btn__spinner" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Open New Account */}
+      {modalOpen === 'openAccount' && (
+        <div className="overlay open">
+          <div className="modal">
+            <div className="modal__head">
+              <div className="modal__title">Open new account</div>
+              <button className="modal__close" onClick={() => setModalOpen(null)}>✕</button>
+            </div>
+            <form onSubmit={handleOpenAccount} className="modal__body">
+              <div className="field">
+                <label>Account Holder Name</label>
+                <input
+                  type="text"
+                  value={newAccountForm.holderName}
+                  placeholder={user?.fullName || 'Account Name'}
+                  onChange={(e) => setNewAccountForm({ ...newAccountForm, holderName: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Opening Deposit Amount (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newAccountForm.openingBalance}
+                  onChange={(e) => setNewAccountForm({ ...newAccountForm, openingBalance: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Security PIN (4–6 Digits)</label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  placeholder="••••"
+                  className="mono"
+                  value={newAccountForm.pin}
+                  onChange={(e) => setNewAccountForm({ ...newAccountForm, pin: e.target.value.replace(/\D/g, '') })}
+                  required
+                />
+              </div>
+
+              <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                <span className="btn__label">Create account</span>
+                <span className="btn__spinner" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Beneficiary */}
+      {modalOpen === 'addBeneficiary' && (
+        <div className="overlay open">
+          <div className="modal">
+            <div className="modal__head">
+              <div className="modal__title">Add beneficiary</div>
+              <button className="modal__close" onClick={() => setModalOpen(null)}>✕</button>
+            </div>
+            <form onSubmit={handleAddBeneficiary} className="modal__body">
+              <div className="field">
+                <label>Payee Name</label>
+                <input
+                  type="text"
+                  placeholder="Priya Shah"
+                  value={benefForm.name}
+                  onChange={(e) => setBenefForm({ ...benefForm, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Account Number</label>
+                <input
+                  type="text"
+                  placeholder="10293847"
+                  className="mono"
+                  value={benefForm.accountNumber}
+                  onChange={(e) => setBenefForm({ ...benefForm, accountNumber: e.target.value.replace(/\D/g, '') })}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Nickname (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Priya"
+                  value={benefForm.nickname}
+                  onChange={(e) => setBenefForm({ ...benefForm, nickname: e.target.value })}
+                />
+              </div>
+
+              <button type="submit" className={`btn btn--primary btn--block ${loading ? 'is-loading' : ''}`} disabled={loading}>
+                <span className="btn__label">Save beneficiary</span>
+                <span className="btn__spinner" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
