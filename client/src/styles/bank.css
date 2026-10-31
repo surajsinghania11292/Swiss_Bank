@@ -615,4 +615,96 @@ tbody tr:hover { background: var(--bg-soft); }
 .consent-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .consent-row input[type="checkbox"] {
   appearance: none; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; border-radius: 5px;
-  border: 1.5px solid var(--border-strong); background:
+  border: 1.5px solid var(--border-strong); background: var(--surface); cursor: pointer; position: relative; transition: all .15s var(--ease);
+}
+.consent-row input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.consent-row input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.consent-row label { font-size: 12px; color: var(--text-dim); line-height: 1.5; cursor: pointer; }
+.consent-row a { color: var(--accent); font-weight: 600; }
+
+/* ---------- Review summary ---------- */
+.review-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.review-list__row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 13px; font-size: 12.5px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.review-list__row:last-child { border-bottom: none; }
+.review-list__row span:first-child { color: var(--text-faint); font-weight: 600; }
+.review-list__row span:last-child { color: var(--text); font-weight: 600; text-align: right; word-break: break-word; }
+
+/* ---------- Responsive Breakpoints ---------- */
+@media (max-width: 1024px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .quick-grid { grid-template-columns: repeat(3, 1fr); }
+  .grid-2, .cards-view-grid { grid-template-columns: 1fr; }
+  .auth-wrap { grid-template-columns: 1fr; }
+  .auth-side { display: none; }
+}
+
+@media (max-width: 780px) {
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+  .app-shell {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .main-col {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  #menuToggle { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: -260px; width: 248px;
+    transition: left .24s var(--ease); z-index: 50; box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+  }
+  .sidebar.is-open { left: 0; }
+  .appbar { padding: 10px 14px; gap: 8px; justify-content: space-between; }
+  .appbar__title { font-size: 16px; }
+  .brand__sub, .user-chip { display: none; }
+  .appbar__right { gap: 6px; }
+  .icon-toggle { width: 32px; height: 32px; }
+  .theme-toggle button { width: 24px; height: 24px; }
+  .btn--sm { padding: 5px 10px; font-size: 12px; }
+  .wrap { padding: 14px 12px 80px; }
+  
+  .cards-rail { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 12px 14px; }
+  .stat-card__value { font-size: 17px; margin-top: 4px; }
+  .stat-card__label { font-size: 10px; }
+  .stat-card__meta { font-size: 10px; margin-top: 4px; }
+  
+  .quick-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .quick-tile { padding: 10px 4px; gap: 6px; }
+  .quick-tile__ic { width: 32px; height: 32px; }
+  .quick-tile__ic svg { width: 15px; height: 15px; }
+  .quick-tile__label { font-size: 10.5px; }
+  
+  .profile-grid { grid-template-columns: 1fr; }
+  .auth-stepper__label { font-size: 9px; }
+  .review-list__row { flex-direction: column; gap: 2px; }
+  .review-list__row span:last-child { text-align: left; }
+  
+  .auth-wrap-inner { padding: 14px; }
+  .auth-hero__brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 18px; margin-bottom: 16px; }
+  .auth-hero__brand img { width: 28px; height: 28px; }
+  .auth-hero h1 { font-size: 23px; }
+  .auth-hero p { font-size: 12.5px; }
+  
+  .promo-banner { padding: 14px 16px; gap: 12px; }
+  .promo-banner__title { font-size: 15px; }
+  .promo-banner__sub { font-size: 12px; }
+
+  .actions-bar { gap: 6px; }
+  .actions-bar .btn { font-size: 12px; padding: 6px 10px; }
+  
+  .result-strip { grid-template-columns: 1fr; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-panel, .skeleton, .toast, .bank-card, .bank-card::after, .auth-card, .auth-step { animation: none !important; transition: none !important; }
+  * { transition: none !important; }
+}
