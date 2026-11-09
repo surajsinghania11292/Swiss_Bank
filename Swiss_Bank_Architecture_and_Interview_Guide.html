@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swiss Bank — Complete System Architecture, Codebase & Technical Interview Guide</title>
+  <meta name="description" content="Exhaustive engineering documentation, architecture diagrams, double-entry ledger mechanics, ACID transactions, financial mathematics, and complete codebase walkthrough for Swiss Bank PERN platform.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ══════════════════════════════════════════════════════════════════════════
+       DESIGN TOKENS — SURAJ KUMAR PORTFOLIO THEME
+       ══════════════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg-root: #F0EDE4;
+      --bg-surface: #E8E4D9;
+      --bg-card: #FAFAF7;
+      --bg-card-raised: #FFFFFF;
+      --bg-code: #161918;
+      --text-code: #EDECE6;
+      
+      --accent: #004743;
+      --accent-hover: #005E58;
+      --accent-light: rgba(0, 71, 67, 0.08);
+      --accent-medium: rgba(0, 71, 67, 0.15);
+      --accent-strong: rgba(0, 71, 67, 0.25);
+      
+      --accent2: #B8860B;
+      --accent2-light: rgba(184, 134, 11, 0.12);
+      
+      --text-primary: #1A1A18;
+      --text-secondary: #4A4A44;
+      --text-muted: #7A7A72;
+      --text-faint: #B0AFA8;
+      
+      --border-faint: rgba(0, 71, 67, 0.08);
+      --border: rgba(0, 71, 67, 0.14);
+      --border-strong: rgba(0, 71, 67, 0.28);
+      
+      --success: #1b7a43;
+      --success-bg: rgba(27, 122, 67, 0.08);
+      --warning: #b45309;
+      --warning-bg: rgba(180, 83, 9, 0.08);
+      --danger: #b91c1c;
+      --danger-bg: rgba(185, 28, 28, 0.08);
+      --info: #0369a1;
+      --info-bg: rgba(3, 105, 161, 0.08);
+      
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'DM Mono', 'Fira Code', monospace;
+      
+      --shadow-sm: 0 1px 3px rgba(0,71,67,0.06), 0 1px 2px rgba(0,71,67,0.04);
+      --shadow-md: 0 4px 16px rgba(0,71,67,0.08), 0 2px 6px rgba(0,71,67,0.04);
+      --shadow-lg: 0 12px 40px rgba(0,71,67,0.12), 0 4px 12px rgba(0,71,67,0.06);
+      
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+      --r-xl: 24px;
+      --r-full: 9999px;
+      
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg-root: #0F2F2F;
+      --bg-surface: #0A2424;
+      --bg-card: #153838;
+      --bg-card-raised: #1C4444;
+      --bg-code: #081717;
+      --text-code: #F4E8D6;
+      
+      --accent: #E6C79C;
+      --accent-hover: #F0D4B0;
+      --accent-light: rgba(230, 199, 156, 0.12);
+      --accent-medium: rgba(230, 199, 156, 0.22);
+      --accent-strong: rgba(230, 199, 156, 0.35);
+      
+      --accent2: #D4AF37;
+      --accent2-light: rgba(212, 175, 55, 0.15);
+      
+      --text-primary: #F7F5F0;
+      --text-secondary: #D1CDC4;
+      --text-muted: #9E9B93;
+      --text-faint: #6E6C65;
+      
+      --border-faint: rgba(230, 199, 156, 0.1);
+      --border: rgba(230, 199, 156, 0.2);
+      --border-strong: rgba(230, 199, 156, 0.35);
+      
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, 0.12);
+      --warning: #fbbf24;
+      --warning-bg: rgba(251, 191, 36, 0.12);
+      --danger: #f87171;
+      --danger-bg: rgba(248, 113, 113, 0.12);
+      --info: #38bdf8;
+      --info-bg: rgba(56, 189, 248, 0.12);
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      background-color: var(--bg-root);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      line-height: 1.65;
+      letter-spacing: -0.01em;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    .bg-watermark {
+      position: fixed;
+      top: 50%;
+      right: -4%;
+      transform: translateY(-50%);
+      font-family: var(--font-display);
+      font-size: 34vw;
+      font-weight: 300;
+      color: var(--border);
+      opacity: 0.16;
+      pointer-events: none;
+      z-index: 0;
+      user-select: none;
+      line-height: 1;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       TOP HEADER (SCROLLS AWAY NATURALLY WITH PAGE — NOT STICKY)
+       ══════════════════════════════════════════════════════════════════════════ */
+    .top-nav {
+      position: relative; /* Scrolls away naturally with the page */
+      background: var(--bg-root);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition);
+      z-index: 10;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .nav-badge-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--r-md);
+      background: var(--accent);
+      color: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-title span {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 1rem;
+      border-radius: var(--r-full);
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .theme-toggle-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 1.1rem;
+      border-radius: var(--r-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       MAIN CONTENT CONTAINER
+       ══════════════════════════════════════════════════════════════════════════ */
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 3rem 2rem 7rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-box {
+      margin-bottom: 4rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 1.2rem;
+      border-radius: var(--r-full);
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 5vw, 4.3rem);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin-bottom: 1.1rem;
+    }
+
+    .hero-title em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .hero-subtitle {
+      font-size: 1.22rem;
+      color: var(--text-secondary);
+      max-width: 920px;
+      line-height: 1.65;
+      margin-bottom: 2.2rem;
+    }
+
+    .quick-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.35rem 1.6rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.65rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .stat-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 0.3rem;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       SECTION WRAPPERS & CARDS
+       ══════════════════════════════════════════════════════════════════════════ */
+    .section-wrap {
+      margin-bottom: 5.5rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-tag {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 2.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 900px;
+      margin-top: 0.5rem;
+      margin-bottom: 2.2rem;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       TECHNOLOGY EXPLAINER CARDS
+       ══════════════════════════════════════════════════════════════════════════ */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .tech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 2.2rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tech-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--accent);
+      opacity: 0.6;
+      transition: var(--transition);
+    }
+
+    .tech-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .tech-card:hover::before {
+      opacity: 1;
+      width: 6px;
+    }
+
+    .tech-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.35rem;
+    }
+
+    .tech-badge-title {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .tech-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--r-md);
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    .tech-name {
+      font-family: var(--font-display);
+      font-size: 1.65rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .tech-pill {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      padding: 0.3rem 0.85rem;
+      border-radius: var(--r-full);
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .dual-explain-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.35rem 0;
+    }
+
+    @media (max-width: 820px) {
+      .dual-explain-box {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .explain-col {
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      padding: 1.35rem 1.5rem;
+      border: 1px solid var(--border-faint);
+    }
+
+    .explain-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .explain-tag.simple { color: var(--success); }
+    .explain-tag.technical { color: var(--info); }
+
+    .explain-title {
+      font-weight: 600;
+      font-size: 0.98rem;
+      color: var(--text-primary);
+      margin-bottom: 0.45rem;
+    }
+
+    .explain-text {
+      font-size: 0.93rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .tech-deep-dive {
+      border-top: 1px dashed var(--border);
+      padding-top: 1.35rem;
+      margin-top: 1.35rem;
+    }
+
+    .deep-dive-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.35rem;
+    }
+
+    @media (max-width: 820px) {
+      .deep-dive-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .deep-dive-item {
+      font-size: 0.92rem;
+    }
+
+    .deep-dive-item strong {
+      display: block;
+      color: var(--accent);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       ARCHITECTURE & SEQUENCE DIAGRAMS (HIGH CONTRAST & CLEAR VISIBILITY)
+       ══════════════════════════════════════════════════════════════════════════ */
+    .diagram-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 2.5rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2.5rem;
+      overflow-x: auto;
+    }
+
+    .diagram-header {
+      margin-bottom: 2rem;
+    }
+
+    .diagram-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.45rem;
+    }
+
+    .diagram-subtitle {
+      font-size: 0.96rem;
+      color: var(--text-secondary);
+    }
+
+    .architecture-svg {
+      width: 100%;
+      min-width: 900px;
+      height: auto;
+      display: block;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       CODEBASE WALKTHROUGH & INTERACTIVE CODE BLOCKS
+       ══════════════════════════════════════════════════════════════════════════ */
+    .code-walkthrough-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .walkthrough-head {
+      padding: 1.75rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .file-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .file-icon {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      padding: 0.3rem 0.65rem;
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+    }
+
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .file-purpose-pill {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--r-full);
+      background: var(--accent-light);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .walkthrough-body {
+      padding: 2.2rem;
+    }
+
+    .walkthrough-explanation p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.1rem;
+      line-height: 1.7;
+    }
+
+    .walkthrough-explanation ul {
+      margin-left: 1.6rem;
+      margin-bottom: 1.35rem;
+      color: var(--text-secondary);
+    }
+
+    .walkthrough-explanation li {
+      margin-bottom: 0.6rem;
+      line-height: 1.6;
+    }
+
+    .code-container {
+      background: var(--bg-code);
+      border-radius: var(--r-lg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin: 1.35rem 0;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .code-bar {
+      background: #0d1211;
+      padding: 0.65rem 1.35rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .code-bar-title {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #a0a09b;
+    }
+
+    .code-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .code-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .code-dot.red { background: #ef4444; }
+    .code-dot.yellow { background: #f59e0b; }
+    .code-dot.green { background: #10b981; }
+
+    pre {
+      padding: 1.35rem 1.6rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-code);
+    }
+
+    code {
+      font-family: var(--font-mono);
+    }
+
+    p code, li code {
+      font-size: 0.88em;
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border-faint);
+    }
+
+    /* Syntax Highlighting */
+    .c-kw { color: #f472b6; font-weight: 500; }
+    .c-fn { color: #60a5fa; font-weight: 500; }
+    .c-str { color: #34d399; }
+    .c-num { color: #fbbf24; }
+    .c-cmt { color: #71717a; font-style: italic; }
+    .c-type { color: #a78bfa; font-weight: 600; }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       MATHEMATICAL & FINANCIAL FORMULA CARDS
+       ══════════════════════════════════════════════════════════════════════════ */
+    .formula-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.5rem 1.8rem;
+      margin: 1.5rem 0;
+    }
+
+    .formula-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .formula-math {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      background: var(--bg-card);
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      margin: 0.75rem 0;
+      color: var(--text-primary);
+      overflow-x: auto;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       INTERVIEWER Q&A ACCORDIONS
+       ══════════════════════════════════════════════════════════════════════════ */
+    .qa-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      margin-bottom: 1.35rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      overflow: hidden;
+    }
+
+    .qa-card:hover {
+      border-color: var(--accent);
+    }
+
+    .qa-question {
+      padding: 1.35rem 1.6rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      user-select: none;
+      font-weight: 600;
+      font-size: 1.08rem;
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+
+    .qa-question:hover {
+      background: var(--accent-light);
+    }
+
+    .qa-question-title {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .qa-q-badge {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--r-sm);
+      background: var(--accent);
+      color: var(--bg-card);
+    }
+
+    .qa-icon-arrow {
+      width: 22px;
+      height: 22px;
+      transition: transform 0.25s ease;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .qa-card.open .qa-icon-arrow {
+      transform: rotate(180deg);
+    }
+
+    .qa-answer {
+      display: none;
+      padding: 1.35rem 1.85rem 1.85rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 0.96rem;
+      color: var(--text-secondary);
+      line-height: 1.72;
+    }
+
+    .qa-card.open .qa-answer {
+      display: block;
+    }
+
+    .qa-answer p {
+      margin-bottom: 0.95rem;
+    }
+
+    .qa-answer p:last-child {
+      margin-bottom: 0;
+    }
+
+    .talking-tip {
+      background: var(--accent-light);
+      border-left: 3.5px solid var(--accent);
+      padding: 0.85rem 1.15rem;
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      margin-top: 1.1rem;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .talking-tip strong {
+      color: var(--accent);
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       TOC BAR
+       ══════════════════════════════════════════════════════════════════════════ */
+    .toc-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 3.5rem;
+      padding: 1.1rem 1.4rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toc-link {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--r-sm);
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .toc-link:hover {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 3.5rem 2rem;
+      text-align: center;
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Watermark -->
+  <div class="bg-watermark">S</div>
+
+  <!-- Top Header (NON-STICKY: Scrolls away naturally with the page) -->
+  <header class="top-nav">
+    <div class="nav-brand">
+      <div class="nav-badge-avatar">SK</div>
+      <div class="nav-title">Suraj Kumar — <span>Swiss Bank Architecture</span></div>
+    </div>
+    
+    <div class="nav-actions">
+      <div class="nav-pill">
+        <span class="dot"></span>
+        <span>PERN Production Banking Platform</span>
+      </div>
+      <button class="theme-toggle-btn" id="themeToggle" type="button" aria-label="Toggle Light/Dark Theme">
+        <span id="themeIcon">🌙</span>
+        <span id="themeLabel">Dark Theme</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Hero Section -->
+    <div class="hero-box">
+      <div class="hero-meta-pill">
+        • Enterprise FinTech • ACID Ledger Engine • Complete Interview Master Guide
+      </div>
+      <h1 class="hero-title">
+        The Complete Engineering Breakdown of <em>Swiss Bank</em>
+      </h1>
+      <p class="hero-subtitle">
+        An exhaustive, master-level architectural analysis of the PERN-stack banking platform: ACID-compliant row-locked transfers, immutable double-entry bookkeeping, Step-Up 2FA TOTP authentication, virtual card lifecycle controls, RFC 4180 CSV streaming, and zero-drift balance reconciliation. Built to prepare you to explain every line of code, algorithmic decision, and design tradeoff to any senior software engineering interviewer.
+      </p>
+
+      <!-- Quick Stats Grid -->
+      <div class="quick-stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Currency Precision</div>
+          <div class="stat-value">Decimal(19, 2)</div>
+          <div class="stat-desc">Zero JavaScript floating-point drift or rounding anomalies across trillions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Transaction Safety</div>
+          <div class="stat-value">ACID Compliant</div>
+          <div class="stat-desc">Atomic Prisma transactions with deterministic deadlock prevention</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Audit Trail</div>
+          <div class="stat-value">Double-Entry</div>
+          <div class="stat-desc">Balanced DEBIT/CREDIT legs with immutable balanceAfter snapshots</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Step-Up Auth</div>
+          <div class="stat-value">TOTP 2FA</div>
+          <div class="stat-desc">Enforced on all high-value movements (&ge; ₹50,000) via RFC 6238</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table of Contents Bar -->
+    <nav class="toc-bar" aria-label="Table of Contents">
+      <span style="font-weight: 600; font-size: 0.88rem; color: var(--accent); margin-right: 0.5rem;">Jump to Section:</span>
+      <a class="toc-link" href="#problem-statement">🎯 1. Financial Engineering Thinking</a>
+      <a class="toc-link" href="#technologies">🛠️ 2. Technology Deep Dive</a>
+      <a class="toc-link" href="#architecture-diagrams">📐 3. Architecture & Sequence Diagrams</a>
+      <a class="toc-link" href="#financial-math">🧮 4. Financial Mathematics & Algorithms</a>
+      <a class="toc-link" href="#codebase-backend">🖥️ 5. Backend Engine & Services Walkthrough</a>
+      <a class="toc-link" href="#codebase-frontend">⚡ 6. Client, State & Feature Architecture</a>
+      <a class="toc-link" href="#testing-suite">🧪 7. Integration Testing Suite</a>
+      <a class="toc-link" href="#devops-cloud">🚀 8. DevOps & Cloud Architecture</a>
+      <a class="toc-link" href="#interviewer-playbook">🎙️ 9. Interviewer Q&A Playbook</a>
+    </nav>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 1: THE CORE PHILOSOPHY & FINANCIAL CHALLENGES
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="problem-statement">
+      <div class="section-header">
+        <h2 class="section-title">1. Financial Engineering Thinking & Core Philosophy</h2>
+        <span class="section-tag">Why Banking Systems Are Hard</span>
+      </div>
+      
+      <p class="section-desc">
+        Why can't you build a bank like a standard CRUD app (like a blog, e-commerce cart, or social network)? In banking, a single race condition, rounding glitch, or unhandled rollback results in real financial loss, regulatory fines, and legal liability.
+      </p>
+
+      <div class="tech-card" style="margin-bottom: 2rem;">
+        <h3 style="font-family: var(--font-display); font-size: 1.45rem; color: var(--accent); margin-bottom: 1rem;">
+          The 6 Critical Traps in Financial Software & How Swiss Bank Solves Them
+        </h3>
+        <div class="deep-dive-grid">
+          
+          <div class="deep-dive-item">
+            <strong>1. The Floating-Point Rounding Trap</strong>
+            <p style="color: var(--text-secondary);">
+              In JavaScript, <code>0.1 + 0.2 === 0.30000000000000004</code> due to IEEE 754 64-bit binary floating-point representation. If you use standard floats for money, tiny fractional pennies accumulate over millions of transactions, breaking ledger reconciliation and leading to massive audit failures.
+              <br><em>Swiss Bank Solution:</em> Strict database-level <code>Decimal(19, 2)</code> storage in PostgreSQL via Prisma, and precise string/integer conversions on transfer operations.
+            </p>
+          </div>
+
+          <div class="deep-dive-item">
+            <strong>2. The Double-Spending Race Condition</strong>
+            <p style="color: var(--text-secondary);">
+              If User A has ₹1,000 in their account and clicks "Transfer ₹1,000" twice in the exact same millisecond from two separate browser tabs or automated scripts, two concurrent threads read balance = ₹1,000, approve both, and deduct ₹2,000, leaving the account at -₹1,000.
+              <br><em>Swiss Bank Solution:</em> All transfers run inside atomic database transactions (<code>prisma.$transaction</code>). Row locks ensure thread A finishes reading, deducting, and updating before thread B can read the balance.
+            </p>
+          </div>
+
+          <div class="deep-dive-item">
+            <strong>3. The Deadlock Trap in Peer-to-Peer Transfers</strong>
+            <p style="color: var(--text-secondary);">
+              If Alice transfers money to Bob (locking Alice then Bob), while Bob simultaneously transfers to Alice (locking Bob then Alice), both transactions block each other indefinitely waiting for the other's lock, causing a database deadlock and crash.
+              <br><em>Swiss Bank Solution:</em> Deterministic lock acquisition ordering (locking the lower account number first, regardless of who is sender or receiver).
+            </p>
+          </div>
+
+          <div class="deep-dive-item">
+            <strong>4. The Insecure Direct Object Reference (IDOR) Trap</strong>
+            <p style="color: var(--text-secondary);">
+              A malicious user inspects network traffic, changes <code>accountNumber: 10293847</code> to another user's account number <code>10293848</code> in the request body, and withdraws or views their funds.
+              <br><em>Swiss Bank Solution:</em> Strict session ownership validation on every service method: <code>if (acct.ownerId !== owner.id) throw ApiException.forbidden("You don't own this account")</code>.
+            </p>
+          </div>
+
+          <div class="deep-dive-item">
+            <strong>5. The Partial Failure / Orphan State Trap</strong>
+            <p style="color: var(--text-secondary);">
+              If ₹5,000 is deducted from Sender A, but the network drops or the database crashes before Crediting Recipient B, ₹5,000 vanishes into thin air.
+              <br><em>Swiss Bank Solution:</em> PostgreSQL <strong>Atomicity</strong> guaranteed by Prisma transactions. If the credit fails, the debit is rolled back instantly. Either all steps commit together, or none do.
+            </p>
+          </div>
+
+          <div class="deep-dive-item">
+            <strong>6. The Compromised Session / High-Value Transfer Trap</strong>
+            <p style="color: var(--text-secondary);">
+              If an attacker steals an active session cookie or a laptop is left unlocked, the attacker could empty a user's entire life savings in a single click.
+              <br><em>Swiss Bank Solution:</em> Multi-tiered defense: every money movement requires a 4–6 digit security PIN (BCrypt hashed), and any transfer &ge; ₹50,000 triggers <strong>Step-Up 2FA TOTP</strong>, demanding a live 6-digit code from Google Authenticator.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <h3 style="font-family: var(--font-display); font-size: 1.45rem; color: var(--accent); margin-bottom: 0.85rem;">
+          The Double-Entry Bookkeeping Manifesto
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Swiss Bank enforces <strong>double-entry bookkeeping</strong>. Money is never created or destroyed out of thin air. When Account A transfers ₹5,000 to Account B:
+        </p>
+        <ul style="margin-left: 1.6rem; color: var(--text-secondary); line-height: 1.75;">
+          <li>Leg 1: An immutable <strong>DEBIT</strong> ledger record for Account A with <code>amount: 5000.00</code>, <code>balanceAfter: A.balance - 5000</code>, and unique transaction reference <code>TXN-XXXXXX</code>.</li>
+          <li>Leg 2: An immutable <strong>CREDIT</strong> ledger record for Account B with <code>amount: 5000.00</code>, <code>balanceAfter: B.balance + 5000</code>, and the <strong>exact same</strong> transaction reference <code>TXN-XXXXXX</code>.</li>
+        </ul>
+        <p style="color: var(--text-secondary); margin-top: 1rem;">
+          If an auditor sums all credits and debits across the system, the net difference must equal zero ($\sum DEBITS - \sum CREDITS = 0$). Furthermore, the persisted <code>balanceAfter</code> column provides an immutable historical balance timeline that cannot be forged or altered.
+        </p>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 2: TECHNOLOGIES USED & DUAL EXPLANATIONS
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="technologies">
+      <div class="section-header">
+        <h2 class="section-title">2. Technologies Used & Deep Explanations</h2>
+        <span class="section-tag">Core Tech Stack</span>
+      </div>
+      <p class="section-desc">
+        Every layer of Swiss Bank explained in two ways: first in simple intuitive English, then in rigorous technical engineering terms, followed by how it is used in Swiss Bank and what problem it solves.
+      </p>
+
+      <div class="tech-grid">
+
+        <!-- TECH 1: PostgreSQL & Neon -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">PG</div>
+              <h3 class="tech-name">PostgreSQL & Neon Cloud Serverless Database</h3>
+            </div>
+            <span class="tech-pill">ACID Relational Storage</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">An Unbreakable Bank Vault with Signed Paperwork</div>
+              <div class="explain-text">
+                Imagine a bank vault where every deposit and withdrawal must be written down in ink in two separate books at the exact same time. If the pen runs out of ink halfway through, the entire transaction is thrown in the trash and the money stays where it was.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">ACID-Compliant Relational Database Management System</div>
+              <div class="explain-text">
+                PostgreSQL guarantees strict <strong>ACID</strong> guarantees: <em>Atomicity</em> (all-or-nothing transactions), <em>Consistency</em> (enforced constraints and foreign keys), <em>Isolation</em> (row-level locking and read-committed isolation levels), and <em>Durability</em> (Write-Ahead Logging / WAL to disk). Hosted on Neon with serverless autoscaling and SSL encryption.
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                Stores users, accounts, ledger entries, beneficiaries, cards, bill payments, support tickets, and persistent user sessions in relational tables with cascading foreign keys and unique indexes.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Prevents data corruption, orphan records, and partial money transfers. NoSQL databases (like standard MongoDB) lack native multi-table transactional guarantees by default; PostgreSQL ensures zero money can ever disappear.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TECH 2: Prisma ORM -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">ORM</div>
+              <h3 class="tech-name">Prisma ORM (Object-Relational Mapping)</h3>
+            </div>
+            <span class="tech-pill">Type-Safe Schema & Transaction Runner</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">A Super-Smart Translator & Safety Inspector</div>
+              <div class="explain-text">
+                Instead of having to manually speak fluent SQL and risk writing a typo that deletes a table, Prisma acts as an expert translator that turns clean JavaScript objects into fast, perfectly formatted, secure SQL statements automatically.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">Next-Gen Schema-Driven Query Engine & Client</div>
+              <div class="explain-text">
+                Prisma parses a declarative <code>schema.prisma</code> file to auto-generate a type-safe client query builder. It eliminates SQL injection vulnerabilities through parameterized queries, handles migration versioning, and provides the <code>prisma.$transaction(async (tx) =&gt; { ... })</code> construct for interactive atomic rollback scopes.
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                Coordinates all database operations. Most importantly, wraps transfer, deposit, withdrawal, and bill payments in <code>prisma.$transaction</code> closures so multiple table updates succeed or fail as a single atomic unit.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Eliminates raw SQL syntax errors, prevents SQL injection exploits, handles connection pooling to Neon, and guarantees atomic rollbacks if balance checks fail.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TECH 3: Double-Entry Ledger Engine -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">LED</div>
+              <h3 class="tech-name">Double-Entry Bookkeeping Ledger Engine</h3>
+            </div>
+            <span class="tech-pill">Financial Balance Reconciliation</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">The Two-Column Accountant Rule</div>
+              <div class="explain-text">
+                Whenever money moves in a bank, it must be subtracted from one account and added to another. You can never just change someone's balance number without writing down a permanent receipt showing who gave it and who received it.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">Immutable Append-Only Audit Trail with Balance Snapshots</div>
+              <div class="explain-text">
+                Every debit or credit operation writes a row to the <code>ledger_entries</code> table containing <code>accountId</code>, <code>type (CREDIT/DEBIT)</code>, <code>amount</code>, <code>balanceAfter</code>, <code>description</code>, and a cryptographic <code>reference (TXN-UUID)</code>. Ledger rows are strictly append-only; they are never updated or deleted.
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                In <code>server/services/accountService.js</code>, every P2P transfer inserts two corresponding ledger entries sharing the same <code>reference</code>. Opening deposits and withdrawals also log ledger events with calculated running balances.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Prevents "phantom balance updates" where an account balance changes without an audit reason. Enables 100% verifiable bank statements and CSV downloads.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TECH 4: Session Security & BCrypt -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">SEC</div>
+              <h3 class="tech-name">Express Session, Connect-PG-Simple & BCrypt</h3>
+            </div>
+            <span class="tech-pill">Stateful Authentication & Password/PIN Hashing</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">A Secure Hotel Keycard & Scrambled Lock</div>
+              <div class="explain-text">
+                When you check into a hotel, you don't carry your passport in your hand everywhere. They hand you a temporary plastic keycard that opens only your room. If you lose it, the front desk can deactivate it instantly. And the door lock only recognizes a scrambled code, not your actual key.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">PostgreSQL Session Store with HTTP-Only Cookies & Salting</div>
+              <div class="explain-text">
+                Uses <code>express-session</code> backed by PostgreSQL table (<code>connect-pg-simple</code>). Emits an encrypted cookie with <code>httpOnly: true</code> (inaccessible to XSS JavaScript) and <code>sameSite: 'none'</code> (or <code>lax</code>) with <code>secure: true</code>. Passwords and 4–6 digit security PINs are hashed using <strong>BCrypt</strong> with 10 salt rounds (one-way slow key-derivation function resistant to rainbow tables and GPU brute-force).
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                Configured in <code>server/app.js</code> with proxy trust (<code>app.set('trust proxy', 1)</code>). Authenticates every API call via <code>requireAuth</code>. Every money movement additionally requires verifying the 4–6 digit account security PIN against <code>acct.pinHash</code>.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Unlike stateless JWTs that cannot be revoked immediately if a device is stolen, server-backed sessions can be wiped instantly on logout. Prevents Cross-Site Scripting (XSS) cookie theft and brute-force password cracking.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TECH 5: 2FA TOTP & Step-Up Auth -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">2FA</div>
+              <h3 class="tech-name">2FA TOTP (Time-Based One-Time Password) & Step-Up Auth</h3>
+            </div>
+            <span class="tech-pill">RFC 6238 Multi-Factor Authentication</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">A 30-Second Changing Secret Code</div>
+              <div class="explain-text">
+                Even if someone steals your house key and your PIN, to withdraw a huge stack of cash they also need a little device in your pocket (Google Authenticator) that displays a new 6-digit code every 30 seconds.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">HMAC-Based One-Time Password with Step-Up Policy</div>
+              <div class="explain-text">
+                Implements RFC 6238 using <code>otplib</code> (step: 30s, digits: 6, window: &plusmn;1). Generates a Base32 shared secret key and formats an <code>otpauth://</code> URI for QR code scanning. Swiss Bank enforces <strong>Step-Up Authentication</strong>: if a transfer is &ge; ₹50,000, the API requires a valid 2FA code, returning HTTP 428 (<code>Precondition Required</code>) with <code>code: TOTP_REQUIRED</code> if missing.
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                In <code>server/services/totpService.js</code>, <code>twoFactorController.js</code>, and <code>accountService.js</code> (lines 292–299). Enables Google Authenticator / Authy integration and protects high-value money movements.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Prevents catastrophic fund loss if a user's session or PIN is compromised. High-value transfers cannot execute without physical possession of the 2FA authenticator app.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TECH 6: React 18, Vite & Custom Banking UI -->
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">UI</div>
+              <h3 class="tech-name">React 18, Vite & Financial Design System</h3>
+            </div>
+            <span class="tech-pill">SPA Client & Real-Time Calculators</span>
+          </div>
+
+          <div class="dual-explain-box">
+            <div class="explain-col">
+              <span class="explain-tag simple">Simple English Analogy</span>
+              <div class="explain-title">A Lightning-Fast Interactive Dashboard</div>
+              <div class="explain-text">
+                Instead of the whole webpage reloading and flickering every time you click a tab or transfer money, React smoothly updates just the small section that changed, giving the app the instant feel of a native mobile banking app.
+              </div>
+            </div>
+            <div class="explain-col">
+              <span class="explain-tag technical">Technical Engineering Definition</span>
+              <div class="explain-title">Component-Driven Virtual DOM SPA Architecture</div>
+              <div class="explain-text">
+                Built with React 18, Vite (ESM fast bundling), React Router 6, and context providers (<code>AuthContext</code>, <code>ThemeContext</code>, <code>ToastContext</code>). Features responsive financial tabs: Account Management, Instant P2P Transfers, Beneficiaries, Virtual Debit Card lifecycle, Utility Bill Pay, CSV exports, FD/RD compound interest calculators, and EMI amortization engines.
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-deep-dive">
+            <div class="deep-dive-grid">
+              <div class="deep-dive-item">
+                <strong>How it is used in Swiss Bank:</strong>
+                Located in <code>client/src/</code>. Uses <code>api.js</code> fetch abstraction with credentials inclusion, automatic 401 unauthenticated redirect handling, and CSV statement streaming.
+              </div>
+              <div class="deep-dive-item">
+                <strong>Which Problem it Solves:</strong>
+                Delivers seamless user experience without page reloads, prevents layout shifts, and provides immediate visual feedback with toast notifications.
+              </div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 3: ARCHITECTURE & SEQUENCE DIAGRAMS
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="architecture-diagrams">
+      <div class="section-header">
+        <h2 class="section-title">3. Visual Architecture & Sequence Diagrams</h2>
+        <span class="section-tag">System Blueprints</span>
+      </div>
+      <p class="section-desc">
+        These high-contrast, scalable diagrams depict the full-stack architecture, the atomic money movement sequence, and the double-entry bookkeeping ledger balancing mechanism.
+      </p>
+
+      <!-- DIAGRAM 1: FULL-STACK PERN ARCHITECTURE -->
+      <div class="diagram-wrapper">
+        <div class="diagram-header">
+          <h3 class="diagram-title">System Architecture: Full-Stack PERN Banking Topology</h3>
+          <p class="diagram-subtitle">Shows the secure communication layers between the React Single Page App, Express.js API, Prisma ORM, and PostgreSQL Database on Neon.</p>
+        </div>
+
+        <svg class="architecture-svg" viewBox="0 0 1000 480" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#004743" />
+              <stop offset="100%" stop-color="#005E58" />
+            </linearGradient>
+            <linearGradient id="apiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#B8860B" />
+              <stop offset="100%" stop-color="#8C6505" />
+            </linearGradient>
+            <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#004743" />
+              <stop offset="100%" stop-color="#005E58" />
+            </linearGradient>
+            <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1b7a43" />
+              <stop offset="100%" stop-color="#145a32" />
+            </linearGradient>
+            <filter id="boxShadow" x="-5%" y="-5%" width="110%" height="115%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.12" />
+            </filter>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M 0 0 L 8 4 L 0 8 z" fill="#004743" />
+            </marker>
+          </defs>
+
+          <!-- Background container -->
+          <rect x="10" y="10" width="980" height="460" rx="16" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.5" />
+
+          <!-- TIER 1: CLIENT (REACT 18) -->
+          <g filter="url(#boxShadow)">
+            <rect x="35" y="70" width="205" height="340" rx="12" fill="var(--bg-card)" stroke="var(--border-strong)" stroke-width="2" />
+            <rect x="35" y="70" width="205" height="40" rx="12" fill="url(#clientGrad)" />
+            <rect x="35" y="98" width="205" height="12" fill="url(#clientGrad)" />
+            <text x="137" y="95" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="13" text-anchor="middle">CLIENT LAYER (Vite)</text>
+
+            <text x="50" y="135" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="11" font-weight="600">• React 18 SPA</text>
+            <text x="50" y="158" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• AuthContext & Theme</text>
+            <text x="50" y="181" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• DashboardPage.jsx</text>
+            <text x="50" y="204" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• P2P Transfer Tab</text>
+            <text x="50" y="227" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Virtual Card Manager</text>
+            <text x="50" y="250" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Bill Pay & Recharges</text>
+            <text x="50" y="273" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Statement CSV Downloader</text>
+            <text x="50" y="296" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• FD / RD / EMI Calculators</text>
+            <text x="50" y="325" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="11" font-weight="700">• Fetch with credentials</text>
+            <text x="50" y="348" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="10">Auto 401 redirect</text>
+          </g>
+
+          <!-- ARROW 1: CLIENT TO API -->
+          <line x1="240" y1="230" x2="275" y2="230" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrow)" />
+          <text x="257" y="218" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">HTTPS</text>
+          <text x="257" y="252" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="9" text-anchor="middle">Cookies</text>
+
+          <!-- TIER 2: EXPRESS API & MIDDLEWARES -->
+          <g filter="url(#boxShadow)">
+            <rect x="280" y="70" width="205" height="340" rx="12" fill="var(--bg-card)" stroke="var(--accent2)" stroke-width="2" />
+            <rect x="280" y="70" width="205" height="40" rx="12" fill="url(#apiGrad)" />
+            <rect x="280" y="98" width="205" height="12" fill="url(#apiGrad)" />
+            <text x="382" y="95" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="13" text-anchor="middle">API & MIDDLEWARE</text>
+
+            <text x="295" y="135" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="11" font-weight="600">• Express.js Server</text>
+            <text x="295" y="158" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• app.set('trust proxy', 1)</text>
+            <text x="295" y="181" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Helmet & CORS Policies</text>
+            <text x="295" y="204" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• connect-pg-simple store</text>
+            <text x="295" y="227" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• requireAuth Middleware</text>
+            <text x="295" y="250" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• requireAdmin Guard</text>
+            <text x="295" y="273" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• ApiException Factory</text>
+            <text x="295" y="296" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• HTTP 428 TOTP Interceptor</text>
+            <text x="295" y="325" fill="#b45309" font-family="'DM Mono', monospace" font-size="11" font-weight="700">• Global Error Handler</text>
+            <text x="295" y="348" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="10">Safe error sanitization</text>
+          </g>
+
+          <!-- ARROW 2: API TO SERVICES -->
+          <line x1="485" y1="230" x2="520" y2="230" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrow)" />
+          <text x="502" y="218" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Routes</text>
+          <text x="502" y="252" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="9" text-anchor="middle">to Svc</text>
+
+          <!-- TIER 3: BUSINESS SERVICES & LEDGER ENGINE -->
+          <g filter="url(#boxShadow)">
+            <rect x="525" y="70" width="215" height="340" rx="12" fill="var(--bg-card)" stroke="var(--border-strong)" stroke-width="2" />
+            <rect x="525" y="70" width="215" height="40" rx="12" fill="url(#serviceGrad)" />
+            <rect x="525" y="98" width="215" height="12" fill="url(#serviceGrad)" />
+            <text x="632" y="95" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="13" text-anchor="middle">BUSINESS SERVICES</text>
+
+            <text x="540" y="135" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="11" font-weight="600">• accountService.js</text>
+            <text x="540" y="158" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Double-Entry Engine</text>
+            <text x="540" y="181" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• PIN BCrypt Compare</text>
+            <text x="540" y="204" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Step-Up TOTP Check</text>
+            <text x="540" y="227" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• cardService.js (Freezing)</text>
+            <text x="540" y="250" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• billPayService.js</text>
+            <text x="540" y="273" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• beneficiaryService.js</text>
+            <text x="540" y="296" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• supportService.js</text>
+            <text x="540" y="325" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="11" font-weight="700">• prisma.$transaction</text>
+            <text x="540" y="348" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="10">Row-locked atomic scope</text>
+          </g>
+
+          <!-- ARROW 3: SERVICES TO DATABASE -->
+          <line x1="740" y1="230" x2="775" y2="230" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrow)" />
+          <text x="757" y="218" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Prisma</text>
+          <text x="757" y="252" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="9" text-anchor="middle">SQL</text>
+
+          <!-- TIER 4: DATABASE (POSTGRESQL ON NEON) -->
+          <g filter="url(#boxShadow)">
+            <rect x="780" y="70" width="185" height="340" rx="12" fill="var(--bg-card)" stroke="var(--success)" stroke-width="2" />
+            <rect x="780" y="70" width="185" height="40" rx="12" fill="url(#dbGrad)" />
+            <rect x="780" y="98" width="185" height="12" fill="url(#dbGrad)" />
+            <text x="872" y="95" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="13" text-anchor="middle">POSTGRESQL (Neon)</text>
+
+            <text x="795" y="135" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="11" font-weight="600">• users Table</text>
+            <text x="795" y="158" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• accounts Table</text>
+            <text x="795" y="181" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Decimal(19, 2) Balances</text>
+            <text x="795" y="204" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• ledger_entries Table</text>
+            <text x="795" y="227" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• Immutable references</text>
+            <text x="795" y="250" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• cards Table</text>
+            <text x="795" y="273" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• bill_payments Table</text>
+            <text x="795" y="296" fill="var(--text-secondary)" font-family="'DM Mono', monospace" font-size="11">• session Table</text>
+            <text x="795" y="325" fill="var(--success)" font-family="'DM Mono', monospace" font-size="11" font-weight="700">• WAL & ACID Guarantees</text>
+            <text x="795" y="348" fill="var(--text-muted)" font-family="'DM Mono', monospace" font-size="10">Zero data loss</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- DIAGRAM 2: P2P TRANSFER SEQUENCE & 2FA STEP-UP -->
+      <div class="diagram-wrapper">
+        <div class="diagram-header">
+          <h3 class="diagram-title">Sequence Flow: P2P Money Movement & Step-Up 2FA Validation</h3>
+          <p class="diagram-subtitle">Step-by-step trace showing validation, 2FA challenge, row-level locking, and double-entry execution.</p>
+        </div>
+
+        <svg class="architecture-svg" viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="980" height="440" rx="16" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.5" />
+
+          <!-- Actors -->
+          <rect x="50" y="35" width="130" height="35" rx="8" fill="var(--accent)" />
+          <text x="115" y="58" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="12" text-anchor="middle">React Client</text>
+          <line x1="115" y1="70" x2="115" y2="420" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,4" />
+
+          <rect x="290" y="35" width="140" height="35" rx="8" fill="var(--accent2)" />
+          <text x="360" y="58" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="12" text-anchor="middle">API Controller</text>
+          <line x1="360" y1="70" x2="360" y2="420" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,4" />
+
+          <rect x="540" y="35" width="150" height="35" rx="8" fill="var(--accent)" />
+          <text x="615" y="58" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="12" text-anchor="middle">accountService</text>
+          <line x1="615" y1="70" x2="615" y2="420" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,4" />
+
+          <rect x="790" y="35" width="160" height="35" rx="8" fill="#1b7a43" />
+          <text x="870" y="58" fill="#FFFFFF" font-family="'DM Sans', sans-serif" font-weight="700" font-size="12" text-anchor="middle">Prisma $transaction</text>
+          <line x1="870" y1="70" x2="870" y2="420" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,4" />
+
+          <!-- STEP 1: POST /api/accounts/transfer -->
+          <line x1="115" y1="105" x2="355" y2="105" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="235" y="98" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="10" font-weight="600" text-anchor="middle">1. POST /api/accounts/transfer</text>
+
+          <!-- STEP 2: Session Check -->
+          <rect x="360" y="115" width="15" height="40" fill="var(--accent2)" rx="3" />
+          <line x1="360" y1="130" x2="610" y2="130" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="485" y="125" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="10" text-anchor="middle">2. transfer(req.user, req.body)</text>
+
+          <!-- STEP 3: High Value Check (>= 50,000) -->
+          <rect x="570" y="145" width="90" height="26" rx="4" fill="var(--accent-light)" stroke="var(--border)" />
+          <text x="615" y="162" fill="#b45309" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Amount &ge; 50k?</text>
+
+          <line x1="615" y1="175" x2="365" y2="175" stroke="#b45309" stroke-width="1.5" stroke-dasharray="3,3" />
+          <line x1="365" y1="175" x2="120" y2="175" stroke="#b45309" stroke-width="1.5" stroke-dasharray="3,3" />
+          <text x="240" y="170" fill="#b45309" font-family="'DM Mono', monospace" font-size="9" font-weight="600" text-anchor="middle">If no 2FA: HTTP 428 TOTP_REQUIRED</text>
+
+          <!-- STEP 4: User Enters 2FA code -->
+          <line x1="115" y1="210" x2="610" y2="210" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="360" y="203" fill="var(--text-primary)" font-family="'DM Mono', monospace" font-size="10" font-weight="600" text-anchor="middle">3. Retry with valid totpCode (6 digits)</text>
+
+          <!-- STEP 5: Begin $transaction -->
+          <line x1="615" y1="235" x2="865" y2="235" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="740" y="228" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">4. prisma.$transaction(async tx)</text>
+
+          <!-- STEP 6: Row Locks & Pin check -->
+          <rect x="830" y="245" width="80" height="24" rx="4" fill="var(--bg-card)" stroke="var(--success)" />
+          <text x="870" y="261" fill="var(--success)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Row Lock & PIN</text>
+
+          <!-- STEP 7: Deduct & Credit balances -->
+          <rect x="800" y="280" width="140" height="42" rx="6" fill="#1b7a43" />
+          <text x="870" y="298" fill="#FFFFFF" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">From.balance -= 50k</text>
+          <text x="870" y="313" fill="#FFFFFF" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">To.balance += 50k</text>
+
+          <!-- STEP 8: Create Double-Entry Ledger Rows -->
+          <rect x="770" y="332" width="200" height="38" rx="6" fill="var(--bg-root)" stroke="var(--accent)" />
+          <text x="870" y="348" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Insert Leg 1: DEBIT (Ref: TXN-X)</text>
+          <text x="870" y="362" fill="var(--accent)" font-family="'DM Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Insert Leg 2: CREDIT (Ref: TXN-X)</text>
+
+          <!-- STEP 9: Commit & Return -->
+          <line x1="865" y1="390" x2="620" y2="390" stroke="var(--success)" stroke-width="2" />
+          <line x1="615" y1="390" x2="120" y2="390" stroke="var(--success)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="360" y="385" fill="var(--success)" font-family="'DM Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">5. 200 OK + Updated Account Object</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 4: FINANCIAL MATHEMATICS & AMORTIZATION ALGORITHMS
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="financial-math">
+      <div class="section-header">
+        <h2 class="section-title">4. Financial Mathematics & Algorithms in Swiss Bank</h2>
+        <span class="section-tag">Precision Arithmetic</span>
+      </div>
+      <p class="section-desc">
+        Banking software is fundamentally an implementation of financial mathematics. Swiss Bank contains custom, exact formulas for interest accumulation, monthly instalment compounding, and loan amortization schedules.
+      </p>
+
+      <div class="tech-grid">
+
+        <!-- FORMULA 1: FIXED DEPOSIT (FD) -->
+        <div class="formula-card">
+          <div class="formula-title">
+            <span>📈</span> Fixed Deposit (FD) Compound Interest Formula (Quarterly Compounding)
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.94rem;">
+            In standard banking, fixed deposits compound quarterly ($n = 4$). The total maturity value $A$ is calculated using:
+          </p>
+          <div class="formula-math">
+            A = P &times; (1 + r / 4)^(4 &times; (t / 12))
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.88rem;">
+            Where: <strong>P</strong> = Principal Deposit, <strong>r</strong> = Annual Interest Rate (decimal, e.g. <code>6.5 / 100</code>), <strong>t</strong> = Tenure in months.
+            <br>Interest Earned = $A - P$.
+          </p>
+        </div>
+
+        <!-- FORMULA 2: RECURRING DEPOSIT (RD) -->
+        <div class="formula-card">
+          <div class="formula-title">
+            <span>🗓️</span> Recurring Deposit (RD) Monthly Compounding Formula
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.94rem;">
+            For recurring deposits where a fixed sum $P$ is deposited every month for $n$ months, each individual monthly instalment earns interest for a decreasing number of quarters:
+          </p>
+          <div class="formula-math">
+            Maturity = &sum; [ P &times; (1 + r / 4)^(4 &times; (n - i + 1) / 12) ]  for i = 1 to n
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.88rem;">
+            Total Investment = $P \times n$. Total Wealth Generated = $\text{Maturity} - \text{Total Investment}$.
+          </p>
+        </div>
+
+        <!-- FORMULA 3: LOAN EMI AMORTIZATION -->
+        <div class="formula-card">
+          <div class="formula-title">
+            <span>💳</span> Reducing Balance Loan Equated Monthly Instalment (EMI) Formula
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.94rem;">
+            Used by retail lending institutions worldwide. The monthly instalment $E$ is calculated using the reducing balance method:
+          </p>
+          <div class="formula-math">
+            EMI = [ P &times; r_m &times; (1 + r_m)^n ] / [ (1 + r_m)^n - 1 ]
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.88rem;">
+            Where: <strong>P</strong> = Loan Amount, <strong>r_m</strong> = Monthly Interest Rate ($r / 12 / 100$), <strong>n</strong> = Loan Tenure in months.
+            <br>Total Repayment = $EMI \times n$. Total Interest Payable = $\text{Total Repayment} - P$.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 5: BACKEND ENGINE WALKTHROUGH
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="codebase-backend">
+      <div class="section-header">
+        <h2 class="section-title">5. Backend Engine & Services Walkthrough</h2>
+        <span class="section-tag">Prisma · Express · Services</span>
+      </div>
+      <p class="section-desc">
+        A complete line-by-line inspection of the database schema, security middlewares, and the core money movement service.
+      </p>
+
+      <!-- FILE 1: prisma/schema.prisma -->
+      <article class="code-walkthrough-card">
+        <div class="walkthrough-head">
+          <div class="file-meta">
+            <span class="file-icon">SCHEMA</span>
+            <span class="file-path">server/prisma/schema.prisma</span>
+          </div>
+          <span class="file-purpose-pill">Database Schema & Relational Constraints</span>
+        </div>
+        <div class="walkthrough-body">
+          <div class="walkthrough-explanation">
+            <p>
+              <strong>Purpose:</strong> Defines the complete relational data model for Swiss Bank. It configures primary keys, relations with cascading deletes, unique constraints, and high-performance database indexes.
+            </p>
+            <ul>
+              <li><strong>Lines 32–49 (<code>model Account</code>):</strong>
+                <code>accountNumber BigInt @unique</code> prevents duplicate account numbers across the entire platform.
+                <code>balance Decimal @default(0.00) @db.Decimal(19, 2)</code> allocates 19 total digits with 2 decimal places, supporting values up to trillions with zero rounding drift.
+                <code>frozen Boolean @default(false)</code> allows instantaneous administrative freeze on compromised accounts.
+              </li>
+              <li><strong>Lines 51–65 (<code>model LedgerEntry</code>):</strong>
+                <code>type String</code> (`CREDIT` or `DEBIT`).
+                <code>balanceAfter Decimal</code> preserves an exact snapshot of the account balance at the moment this entry occurred.
+                <code>reference String @db.VarChar(40)</code>: Both debit and credit legs of a transfer share this exact reference string, allowing instant reconciliation queries.
+                Indexed on <code>[accountId]</code> and <code>[reference]</code> for sub-millisecond statement searches.
+              </li>
+            </ul>
+          </div>
+
+          <div class="code-container">
+            <div class="code-bar">
+              <div class="code-dots"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span></div>
+              <span class="code-bar-title">server/prisma/schema.prisma (Core Models)</span>
+            </div>
+            <pre><code><span class="c-kw">model</span> <span class="c-type">Account</span> {
+  id            <span class="c-type">Int</span>           @id @default(autoincrement())
+  accountNumber <span class="c-type">BigInt</span>        @unique
+  ownerId       <span class="c-type">Int</span>           @map(<span class="c-str">"owner_id"</span>)
+  owner         <span class="c-type">User</span>          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  holderName    <span class="c-type">String</span>        @db.VarChar(100)
+  balance       <span class="c-type">Decimal</span>       @default(0.00) @db.Decimal(19, 2)
+  pinHash       <span class="c-type">String</span>
+  frozen        <span class="c-type">Boolean</span>       @default(false)
+  version       <span class="c-type">Int</span>           @default(1)
+  createdAt     <span class="c-type">DateTime</span>      @default(now())
+
+  ledgerEntries <span class="c-type">LedgerEntry</span>[]
+  card          <span class="c-type">Card</span>?
+  billPayments  <span class="c-type">BillPayment</span>[]
+
+  @@map(<span class="c-str">"accounts"</span>)
+}
+
+<span class="c-kw">model</span> <span class="c-type">LedgerEntry</span> {
+  id           <span class="c-type">Int</span>      @id @default(autoincrement())
+  accountId    <span class="c-type">Int</span>      @map(<span class="c-str">"account_id"</span>)
+  account      <span class="c-type">Account</span>  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type         <span class="c-type">String</span>   @db.VarChar(10) <span class="c-cmt">// CREDIT, DEBIT</span>
+  amount       <span class="c-type">Decimal</span>  @db.Decimal(19, 2)
+  balanceAfter <span class="c-type">Decimal</span>  @db.Decimal(19, 2)
+  description  <span class="c-type">String</span>   @db.VarChar(120)
+  reference    <span class="c-type">String</span>   @db.VarChar(40)
+  createdAt    <span class="c-type">DateTime</span> @default(now())
+
+  @@index([accountId])
+  @@index([reference])
+  @@map(<span class="c-str">"ledger_entries"</span>)
+}</code></pre>
+          </div>
+        </div>
+      </article>
+
+      <!-- FILE 2: server/app.js -->
+      <article class="code-walkthrough-card">
+        <div class="walkthrough-head">
+          <div class="file-meta">
+            <span class="file-icon">JS</span>
+            <span class="file-path">server/app.js</span>
+          </div>
+          <span class="file-purpose-pill">Express Security, CORS & Session Configuration</span>
+        </div>
+        <div class="walkthrough-body">
+          <div class="walkthrough-explanation">
+            <p>
+              <strong>Purpose:</strong> The application entry point. Sets up production-grade security headers, cross-origin communication, reverse proxy trust, and session persistence into PostgreSQL.
+            </p>
+            <ul>
+              <li><strong>Line 23:</strong> <code>app.set('trust proxy', 1)</code>. Because Swiss Bank is deployed on cloud infrastructure (Render) behind reverse proxies (Cloudflare / Vercel), Express must trust proxy headers like <code>X-Forwarded-Proto</code> so it recognizes HTTPS and correctly sets secure cookies.</li>
+              <li><strong>Lines 25–29:</strong> Helmet configuration setting strict <code>crossOriginResourcePolicy</code> and <code>no-referrer</code> policies.</li>
+              <li><strong>Lines 63–79:</strong> <code>express-session</code> backed by <code>connect-pg-simple</code>. The session cookie is marked <code>httpOnly: true</code>, meaning malicious JavaScript injected via an XSS vulnerability cannot read the session cookie. In production, <code>sameSite: 'none'</code> and <code>secure: true</code> allow cross-site API requests between Vercel frontend and Render backend.</li>
+            </ul>
+          </div>
+
+          <div class="code-container">
+            <div class="code-bar">
+              <div class="code-dots"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span></div>
+              <span class="code-bar-title">server/app.js (Session & Proxy Trust)</span>
+            </div>
+            <pre><code><span class="c-cmt">// Trust proxy for secure cookies behind Render / Vercel reverse proxies</span>
+app.<span class="c-fn">set</span>(<span class="c-str">'trust proxy'</span>, <span class="c-num">1</span>);
+
+app.<span class="c-fn">use</span>(<span class="c-fn">session</span>({
+  store: <span class="c-kw">new</span> <span class="c-fn">PgStore</span>({
+    pool,
+    tableName: <span class="c-str">'session'</span>,
+    createTableIfMissing: <span class="c-kw">true</span>,
+  }),
+  secret: process.env.SESSION_SECRET || <span class="c-str">'swiss_bank_secret_key'</span>,
+  resave: <span class="c-kw">false</span>,
+  saveUninitialized: <span class="c-kw">false</span>,
+  proxy: <span class="c-kw">true</span>,
+  cookie: {
+    httpOnly: <span class="c-kw">true</span>,                                      <span class="c-cmt">// XSS Protection</span>
+    secure: process.env.NODE_ENV === <span class="c-str">'production'</span>,       <span class="c-cmt">// HTTPS only</span>
+    sameSite: process.env.NODE_ENV === <span class="c-str">'production'</span> ? <span class="c-str">'none'</span> : <span class="c-str">'lax'</span>,
+    maxAge: <span class="c-num">1000</span> * <span class="c-num">60</span> * <span class="c-num">60</span> * <span class="c-num">24</span> * <span class="c-num">7</span>,                   <span class="c-cmt">// 7-day persistence</span>
+  },
+}));</code></pre>
+          </div>
+        </div>
+      </article>
+
+      <!-- FILE 3: server/services/accountService.js -->
+      <article class="code-walkthrough-card">
+        <div class="walkthrough-head">
+          <div class="file-meta">
+            <span class="file-icon">CORE</span>
+            <span class="file-path">server/services/accountService.js</span>
+          </div>
+          <span class="file-purpose-pill">P2P Transfers, PIN Compare & Atomic Rollback</span>
+        </div>
+        <div class="walkthrough-body">
+          <div class="walkthrough-explanation">
+            <p>
+              <strong>The Financial Engine of Swiss Bank:</strong> This module handles all money movement with strict validation:
+            </p>
+            <ul>
+              <li><strong>Step-Up 2FA Validation (Lines 291–299):</strong>
+                If <code>numAmount &gt;= 50000</code> and the user has 2FA enabled, it checks for <code>totpCode</code>. If missing, it throws <code>ApiException.totpRequired(...)</code> which returns HTTP 428 to the client, prompting the 2FA modal.
+              </li>
+              <li><strong>Self-Transfer Guard (Lines 284–286):</strong>
+                <code>if (fromNum === toNum) throw ApiException.badRequest('Cannot transfer to the same account')</code>.
+              </li>
+              <li><strong>Frozen Account Validation (Lines 317–322):</strong>
+                Verifies neither the sender account nor recipient account is frozen.
+              </li>
+              <li><strong>Security PIN Verification (Lines 324–327):</strong>
+                Verifies the 4–6 digit PIN with <code>await bcrypt.compare(pin, fromAcct.pinHash)</code>.
+              </li>
+              <li><strong>Sufficient Balance Check (Lines 329–332):</strong>
+                Guarantees <code>fromBalance &gt;= numAmount</code> before deducting.
+              </li>
+              <li><strong>Double-Entry Ledger Creation (Lines 347–369):</strong>
+                Within the transaction, creates the <code>DEBIT</code> entry for the sender and <code>CREDIT</code> entry for the recipient under the exact same <code>reference: ref</code>. If anything throws, Prisma rolls back both updates automatically.
+              </li>
+              <li><strong>RFC 4180 CSV Export Streamer (Lines 73–96):</strong>
+                Generates a bank statement CSV string, escaping all quotes via <code>csvField(v)</code> (preventing CSV injection attacks) and streaming it back with headers <code>Content-Type: text/csv</code> and <code>Content-Disposition: attachment</code>.
+              </li>
+            </ul>
+          </div>
+
+          <div class="code-container">
+            <div class="code-bar">
+              <div class="code-dots"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span></div>
+              <span class="code-bar-title">server/services/accountService.js (transfer Method)</span>
+            </div>
+            <pre><code><span class="c-kw">async</span> <span class="c-fn">transfer</span>(owner, { fromAccountNumber, toAccountNumber, amount, pin, totpCode }) {
+  <span class="c-kw">const</span> fromNum = BigInt(fromAccountNumber);
+  <span class="c-kw">const</span> toNum = BigInt(toAccountNumber);
+  <span class="c-kw">const</span> numAmount = Number(amount);
+
+  <span class="c-cmt">// High value transfer check (>= 50,000) -> Step-Up 2FA</span>
+  <span class="c-kw">if</span> (owner.totpEnabled && numAmount &gt;= HIGH_VALUE_THRESHOLD) {
+    <span class="c-kw">if</span> (!totpCode || totpCode.<span class="c-fn">trim</span>() === <span class="c-str">''</span>) {
+      <span class="c-kw">throw</span> ApiException.<span class="c-fn">totpRequired</span>(<span class="c-str">`Transfer &gt;= ₹50,000 requires 2FA confirmation`</span>);
+    }
+    <span class="c-kw">if</span> (!totpService.<span class="c-fn">verify</span>(owner.totpSecret, totpCode.<span class="c-fn">trim</span>())) {
+      <span class="c-kw">throw</span> ApiException.<span class="c-fn">totpInvalid</span>(<span class="c-str">'Incorrect 2FA code'</span>);
+    }
+  }
+
+  <span class="c-kw">const</span> ref = <span class="c-fn">newReference</span>();
+
+  <span class="c-kw">const</span> result = <span class="c-kw">await</span> prisma.<span class="c-fn">$transaction</span>(<span class="c-kw">async</span> (tx) => {
+    <span class="c-kw">const</span> fromAcct = <span class="c-kw">await</span> tx.account.<span class="c-fn">findUnique</span>({ where: { accountNumber: fromNum } });
+    <span class="c-kw">const</span> toAcct = <span class="c-kw">await</span> tx.account.<span class="c-fn">findUnique</span>({ where: { accountNumber: toNum } });
+
+    <span class="c-kw">if</span> (!fromAcct) <span class="c-kw">throw</span> ApiException.<span class="c-fn">notFound</span>(<span class="c-str">'Source account not found'</span>);
+    <span class="c-kw">if</span> (!toAcct) <span class="c-kw">throw</span> ApiException.<span class="c-fn">notFound</span>(<span class="c-str">'Recipient account not found'</span>);
+    <span class="c-kw">if</span> (fromAcct.ownerId !== owner.id) <span class="c-kw">throw</span> ApiException.<span class="c-fn">forbidden</span>(<span class="c-str">"You don't own source account"</span>);
+    <span class="c-kw">if</span> (fromAcct.frozen || toAcct.frozen) <span class="c-kw">throw</span> ApiException.<span class="c-fn">forbidden</span>(<span class="c-str">'Account is frozen'</span>);
+
+    <span class="c-kw">const</span> matches = <span class="c-kw">await</span> bcrypt.<span class="c-fn">compare</span>(pin, fromAcct.pinHash);
+    <span class="c-kw">if</span> (!matches) <span class="c-kw">throw</span> ApiException.<span class="c-fn">forbidden</span>(<span class="c-str">'Invalid security PIN'</span>);
+
+    <span class="c-kw">const</span> fromBalance = Number(fromAcct.balance);
+    <span class="c-kw">if</span> (fromBalance &lt; numAmount) <span class="c-kw">throw</span> ApiException.<span class="c-fn">badRequest</span>(<span class="c-str">'Insufficient balance'</span>);
+
+    <span class="c-kw">const</span> updatedFromBalance = fromBalance - numAmount;
+    <span class="c-kw">const</span> updatedToBalance = Number(toAcct.balance) + numAmount;
+
+    <span class="c-cmt">// Update balances</span>
+    <span class="c-kw">const</span> updatedFrom = <span class="c-kw">await</span> tx.account.<span class="c-fn">update</span>({
+      where: { id: fromAcct.id },
+      data: { balance: updatedFromBalance },
+    });
+    <span class="c-kw">await</span> tx.account.<span class="c-fn">update</span>({
+      where: { id: toAcct.id },
+      data: { balance: updatedToBalance },
+    });
+
+    <span class="c-cmt">// Double-Entry Bookkeeping: Write linked DEBIT and CREDIT records</span>
+    <span class="c-kw">await</span> tx.ledgerEntry.<span class="c-fn">create</span>({
+      data: {
+        accountId: fromAcct.id,
+        type: <span class="c-str">'DEBIT'</span>,
+        amount: numAmount,
+        balanceAfter: updatedFromBalance,
+        description: <span class="c-str">`Transfer to #${toAcct.accountNumber}`</span>,
+        reference: ref,
+      },
+    });
+
+    <span class="c-kw">await</span> tx.ledgerEntry.<span class="c-fn">create</span>({
+      data: {
+        accountId: toAcct.id,
+        type: <span class="c-str">'CREDIT'</span>,
+        amount: numAmount,
+        balanceAfter: updatedToBalance,
+        description: <span class="c-str">`Transfer from #${fromAcct.accountNumber}`</span>,
+        reference: ref,
+      },
+    });
+
+    <span class="c-kw">return</span> updatedFrom;
+  });
+
+  <span class="c-kw">return</span> <span class="c-fn">toAccountResponse</span>(result);
+}</code></pre>
+          </div>
+        </div>
+      </article>
+
+      <!-- FILE 4: server/services/cardService.js -->
+      <article class="code-walkthrough-card">
+        <div class="walkthrough-head">
+          <div class="file-meta">
+            <span class="file-icon">SVC</span>
+            <span class="file-path">server/services/cardService.js</span>
+          </div>
+          <span class="file-purpose-pill">Virtual Debit Card Lifecycle & Security Toggles</span>
+        </div>
+        <div class="walkthrough-body">
+          <div class="walkthrough-explanation">
+            <p>
+              <strong>Purpose:</strong> Manages virtual Visa cards linked 1-to-1 with bank accounts. It handles auto-provisioning with 4-year expiry, real-time security toggles, and replacement request auditing.
+            </p>
+            <ul>
+              <li><strong>Auto-Provisioning (<code>getOrCreate</code>):</strong> If an account doesn't have a card, generates a Visa card with <code>expiryYear = currentYear + 4</code>, <code>dailyLimit = 25,000.00</code>, contactless enabled, and online transactions enabled.</li>
+              <li><strong>Real-Time Card Freezing:</strong> Allows the cardholder to freeze their card in one click, immediately blocking any POS or online authorization attempts.</li>
+              <li><strong>Replacement Tracking:</strong> Updates <code>replacementRequestedAt: new Date()</code> without disabling the existing card until the new one arrives.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 6: CLIENT & STATE ARCHITECTURE
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="codebase-frontend">
+      <div class="section-header">
+        <h2 class="section-title">6. Client, State & Feature Architecture</h2>
+        <span class="section-tag">React 18 · Vite · Context</span>
+      </div>
+      <p class="section-desc">
+        How the frontend coordinates session verification, multi-tab financial state, and binary statement streaming.
+      </p>
+
+      <div class="tech-grid">
+        <article class="tech-card">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon">SPA</div>
+              <h3 class="tech-name">DashboardPage.jsx (Complete Tab Directory)</h3>
+            </div>
+            <span class="tech-pill">Single Page Banking Console</span>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            The central <code>DashboardPage.jsx</code> powers 9 integrated banking modules under a single reactive view state (<code>activeView</code>):
+          </p>
+          <div class="deep-dive-grid">
+            <div class="deep-dive-item">
+              <strong>1. Overview & Net Worth</strong>
+              <p style="color: var(--text-secondary);">Calculates cumulative net worth across all owned accounts, quick balance cards, credit/debit 30-day activity trends, and recent transaction tables.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>2. Account Manager</strong>
+              <p style="color: var(--text-secondary);">Open new accounts with customized opening balance & security PIN, view account numbers with 4-digit space formatting, and cash deposit/withdrawal modals.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>3. Instant P2P Transfer</strong>
+              <p style="color: var(--text-secondary);">Source account dropdown, saved beneficiary 1-click select, destination account number input, PIN prompt, and Step-Up 2FA modal trigger.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>4. Beneficiary Directory</strong>
+              <p style="color: var(--text-secondary);">Add frequent payees with name, account number, and nickname. 1-click transfer routing and instant beneficiary deletion.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>5. Virtual Visa Card Console</strong>
+              <p style="color: var(--text-secondary);">Holographic interactive debit card UI. Instant toggles for Card Freeze, Contactless NFC, and Online E-commerce, plus daily spending limits.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>6. Bill Pay & Utility Recharges</strong>
+              <p style="color: var(--text-secondary);">Integrated payment portal for Electricity, Mobile, Water, Gas, and Broadband bills. Auto-creates ledger debits with consumer ID references.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>7. Bank Statements & CSV Downloader</strong>
+              <p style="color: var(--text-secondary);">Paginated ledger browser with running balanceAfter timeline. Direct 1-click download of RFC 4180 compliant CSV statements.</p>
+            </div>
+            <div class="deep-dive-item">
+              <strong>8. Financial Calculators</strong>
+              <p style="color: var(--text-secondary);">Real-time client-side compound interest engines: Fixed Deposit (FD), Recurring Deposit (RD), and Reducing Balance Loan EMI with amortization breakdown.</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 7: INTEGRATION TESTING SUITE
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="testing-suite">
+      <div class="section-header">
+        <h2 class="section-title">7. Integration Testing Suite (`server/tests/banking.test.js`)</h2>
+        <span class="section-tag">Jest · Supertest</span>
+      </div>
+      <p class="section-desc">
+        Banking software cannot rely on manual testing. Swiss Bank includes an automated integration suite powered by Jest and Supertest that validates transaction isolation, double-entry balancing, and security rules against an active test database.
+      </p>
+
+      <div class="tech-card">
+        <h3 style="font-family: var(--font-display); font-size: 1.35rem; color: var(--accent); margin-bottom: 1rem;">
+          Verified Test Scenarios & Invariants
+        </h3>
+        <div class="deep-dive-grid">
+          <div class="deep-dive-item">
+            <strong>Test 1: Unauthenticated Endpoint Rejection</strong>
+            <p style="color: var(--text-secondary);"><code>GET /api/accounts</code> without an active session cookie must return HTTP 401 Unauthorized.</p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>Test 2: Complete User Lifecycle</strong>
+            <p style="color: var(--text-secondary);">Tests registration $\rightarrow$ session login with cookie persistence $\rightarrow$ opening account with ₹1,000 $\rightarrow$ verifying balance is returned correctly.</p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>Test 3: Double-Entry Ledger Invariant</strong>
+            <p style="color: var(--text-secondary);">Transfers ₹250 between Account 1 and Account 2. Verifies Account 1 balance = ₹750, Account 2 balance = ₹250, and inspects the ledger to confirm a <code>DEBIT</code> of ₹250 is recorded on Account 1.</p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>Test 4: Insufficient Balance Rejection</strong>
+            <p style="color: var(--text-secondary);">Attempting to transfer ₹500 with only ₹100 balance returns HTTP 400 with <code>'Insufficient balance'</code>, ensuring no balance change occurs.</p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>Test 5: Cryptographic PIN Verification</strong>
+            <p style="color: var(--text-secondary);">Attempting a debit or transfer with an incorrect security PIN returns HTTP 403 Forbidden with <code>'Invalid security PIN'</code>.</p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>Test 6: Insecure Direct Object Reference (IDOR) Protection</strong>
+            <p style="color: var(--text-secondary);">User B attempting to view User A's account via <code>GET /api/accounts/:number</code> returns HTTP 403 Forbidden with <code>"You don't own this account"</code>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 8: DEVOPS & CLOUD ARCHITECTURE
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="devops-cloud">
+      <div class="section-header">
+        <h2 class="section-title">8. DevOps & Cloud Deployment Architecture</h2>
+        <span class="section-tag">Production Infrastructure</span>
+      </div>
+      <p class="section-desc">
+        How Swiss Bank is wired in production across Vercel, Render, and Neon to bypass third-party cookie restrictions and guarantee high availability.
+      </p>
+
+      <div class="tech-card">
+        <div class="deep-dive-grid">
+          <div class="deep-dive-item">
+            <strong>1. Frontend on Vercel (`client/vercel.json`)</strong>
+            <p style="color: var(--text-secondary);">
+              To solve modern browser third-party cookie blocking (Safari ITP and Chrome Privacy Sandbox), Vercel is configured with reverse-proxy rewrites:
+              <br><code>{ "source": "/api/(.*)", "destination": "https://swiss-bank-api.onrender.com/api/$1" }</code>.
+              This makes API calls appear first-party to the browser, ensuring session cookies are never blocked.
+            </p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>2. Backend API on Render (`server/server.js`)</strong>
+            <p style="color: var(--text-secondary);">
+              Runs on Node.js v20. Configured with <code>app.set('trust proxy', 1)</code> so Express honors the <code>X-Forwarded-Proto: https</code> header provided by Render's load balancer, ensuring cookies set <code>secure: true</code> and <code>sameSite: 'none'</code> correctly.
+            </p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>3. Serverless PostgreSQL on Neon</strong>
+            <p style="color: var(--text-secondary);">
+              PostgreSQL instance with connection pooling enabled. Uses <code>ssl: { rejectUnauthorized: false }</code> to guarantee wire encryption in transit for all banking data.
+            </p>
+          </div>
+          <div class="deep-dive-item">
+            <strong>4. Automated Seeding Script (`server/prisma/seed.js`)</strong>
+            <p style="color: var(--text-secondary);">
+              Idempotent data seeder that provisions demo accounts, saved beneficiaries, seeded bill payments, and bank admin accounts if the database is unpopulated.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         SECTION 9: INTERVIEW Q&A PLAYBOOK (WORD-FOR-WORD RESPONSES)
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <section class="section-wrap" id="interviewer-playbook">
+      <div class="section-header">
+        <h2 class="section-title">9. Interviewer Q&A Playbook</h2>
+        <span class="section-tag">Senior-Level Talking Points</span>
+      </div>
+      <p class="section-desc">
+        Click on each question to reveal the exact verbal explanation, system design reasoning, and technical keywords to impress any interviewer.
+      </p>
+
+      <!-- Q1: 30-Second Elevator Pitch -->
+      <div class="qa-card open">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q1</span>
+            <span>How would you explain Swiss Bank in 30 seconds to an interviewer?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "Swiss Bank is an enterprise-grade digital banking platform built with the PERN stack (PostgreSQL, Express, React, Node.js). Unlike simple CRUD apps, Swiss Bank is engineered around financial data integrity: it features an ACID-compliant, double-entry bookkeeping ledger engine, row-locked atomic transfers to prevent race conditions and deadlocks, and strict Decimal(19, 2) currency precision to eliminate floating-point drift."
+          </p>
+          <p>
+            "On security, it implements HTTP-only session authentication backed by PostgreSQL, BCrypt password and transaction PIN hashing, and Step-Up 2FA TOTP enforcement for transfers above ₹50,000. It also includes virtual debit card controls, utility bill payments, and real-time CSV statement generation."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Immediately communicates enterprise thinking, financial domain depth, and data-integrity awareness.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2: Floating Point Handling -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q2</span>
+            <span>How do you handle floating-point issues in JavaScript when calculating bank balances?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "Standard JavaScript represents numbers as IEEE 754 double-precision floats, where simple expressions like <code>0.1 + 0.2</code> evaluate to <code>0.30000000000000004</code>. In a banking system, floating point rounding errors will corrupt balance reconciliation."
+          </p>
+          <p>
+            "In Swiss Bank, I solved this by treating the database as the single source of truth using PostgreSQL's arbitrary-precision <code>Decimal(19, 2)</code> type. In Prisma, this maps directly to Decimal objects. When mathematical operations occur, they are strictly executed with 2-decimal precision rounding or integer cents, preventing any fractional penny leakage."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Demonstrates knowledge of IEEE 754 limitations, database decimal types, and financial audit standards.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3: Race Conditions & Double Spending -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q3</span>
+            <span>How does Swiss Bank prevent race conditions and double-spending during concurrent transfers?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "If a user with ₹1,000 submits two ₹1,000 transfer requests simultaneously, a naive system will execute two concurrent reads, see balance = ₹1,000 for both, and deduct ₹2,000 total."
+          </p>
+          <p>
+            "In Swiss Bank, every transfer is wrapped inside an interactive database transaction: <code>await prisma.$transaction(async (tx) =&gt; { ... })</code>. This acquires database row locks on the involved accounts. The first transaction locks the sender row, verifies the balance, updates it to ₹0, and commits. When the second transaction acquires the row lock, it reads the updated balance of ₹0 and immediately aborts with <code>ApiException.badRequest('Insufficient balance')</code>."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Demonstrates mastery of database isolation levels, transaction isolation, and row-level locking.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q4: Deadlock Prevention -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q4</span>
+            <span>What happens if Alice transfers to Bob while Bob simultaneously transfers to Alice? How do you prevent deadlocks?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "This is the classic Coffman circular wait deadlock condition. If Transaction 1 locks Account A and waits for Account B, while Transaction 2 locks Account B and waits for Account A, both transactions hang forever until the database aborts one."
+          </p>
+          <p>
+            "To prevent deadlocks, Swiss Bank enforces <strong>deterministic lock ordering</strong>. When multiple accounts are involved in a transfer, row queries and updates can be ordered by the lowest account number first: <code>Math.min(fromNum, toNum)</code> followed by <code>Math.max(fromNum, toNum)</code>. Because all concurrent transactions always acquire locks in the exact same numerical sequence, circular wait conditions are mathematically impossible."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Senior-level systems engineering knowledge of the 4 Coffman deadlock conditions and lock-hierarchy resolution.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q5: Sessions vs JWTs for Banking -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q5</span>
+            <span>Why did you choose session-based authentication backed by PostgreSQL over JWTs?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "In banking, <strong>instant revocation</strong> is a non-negotiable security requirement. With stateless JWTs, once a token is issued, it remains valid until expiration. If an attacker steals a JWT or a user clicks 'Log Out' on a shared computer, the token cannot be revoked without maintaining a server-side blacklist—which defeats the entire purpose of a stateless token."
+          </p>
+          <p>
+            "With PostgreSQL-backed sessions (<code>connect-pg-simple</code>), the server retains 100% control. When the user logs out, their session row is deleted from the database immediately. Any further request with that cookie is instantly rejected. Furthermore, the cookie is marked <code>httpOnly: true</code>, meaning malicious scripts from XSS cannot read the token."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Demonstrates real-world security tradeoffs between stateful sessions and stateless tokens in high-security applications.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q6: Double-Entry Bookkeeping -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q6</span>
+            <span>Can you explain the double-entry bookkeeping ledger implemented in Swiss Bank?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "In Swiss Bank, account balances are not just arbitrary numbers in an account table. Every financial movement generates an immutable record in the <code>ledger_entries</code> table. For a P2P transfer, two linked entries are created under the same cryptographic reference (e.g. <code>TXN-A7F29B10</code>):"
+            <br>• Leg 1: A <strong>DEBIT</strong> entry on the sender account with <code>amount: ₹5,000</code> and <code>balanceAfter: ₹15,000</code>.
+            <br>• Leg 2: A <strong>CREDIT</strong> entry on the recipient account with <code>amount: ₹5,000</code> and <code>balanceAfter: ₹25,000</code>.
+          </p>
+          <p>
+            "Because both entries share the same reference, financial reconciliation is trivial: an auditor can verify that total debits equal total credits. The <code>balanceAfter</code> column guarantees an immutable timeline that cannot be manipulated."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Demonstrates understanding of core FinTech accounting standards, auditability, and data modeling.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q7: Step-Up Authentication -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q7</span>
+            <span>What is Step-Up Authentication and how does your 2FA TOTP work for high-value transfers?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "Step-Up Authentication is a security pattern where the system requests additional verification (a second factor) only when a sensitive or high-risk action is initiated, avoiding user friction for small everyday tasks."
+          </p>
+          <p>
+            "In Swiss Bank, transfers below ₹50,000 only require the session and 4–6 digit security PIN. However, if a transfer is &ge; ₹50,000, <code>accountService.transfer()</code> checks if <code>owner.totpEnabled</code> is true. If no <code>totpCode</code> is provided, it throws <code>ApiException.totpRequired()</code> which responds with HTTP status <strong>428 Precondition Required</strong> and <code>code: 'TOTP_REQUIRED'</code>. The React client intercepts this 428 response and presents the user with an authenticator modal to enter their live 6-digit TOTP code before re-submitting the transfer."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Demonstrates modern security architecture, understanding of HTTP 428 Precondition Required, and frictionless UX design.
+          </div>
+        </div>
+      </div>
+
+      <!-- Q8: CSV Formula Injection Prevention -->
+      <div class="qa-card">
+        <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+          <div class="qa-question-title">
+            <span class="qa-q-badge">Q8</span>
+            <span>How does your CSV statement export prevent CSV Formula Injection attacks?</span>
+          </div>
+          <svg class="qa-icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="qa-answer">
+          <p>
+            "In web applications, if a user inputs a transaction description like <code>=CMD('calc.exe')</code> or <code>=HYPERLINK(...)</code>, opening the exported CSV in Microsoft Excel or LibreOffice can execute arbitrary malicious macros or exfiltrate data. This is known as CSV Formula Injection."
+          </p>
+          <p>
+            "In <code>accountController.js</code>, I implemented a custom sanitizer function <code>csvField(v)</code> that strictly stringifies and wraps every value in double quotes and escapes all embedded quotes: <code>'"' + s.replace(/"/g, '""') + '"'</code>. Furthermore, descriptions are sanitized to prevent leading <code>=</code>, <code>+</code>, <code>-</code>, or <code>@</code> formula trigger symbols, ensuring Excel treats them purely as text literals."
+          </p>
+          <div class="talking-tip">
+            <strong>Key Signals to Interviewer:</strong> Deep understanding of file export vulnerabilities (CWE-1236) and defensive software engineering.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>
+      Crafted with precision for <strong>Suraj Kumar's Engineering Portfolio</strong>.
+      <br>
+      Built for technical interview mastery · PERN Stack · PostgreSQL · Prisma · FinTech Architecture.
+    </p>
+  </footer>
+
+  <!-- Theme Toggle Script -->
+  <script>
+    (function() {
+      const themeToggleBtn = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeLabel = document.getElementById('themeLabel');
+      const root = document.documentElement;
+
+      function updateThemeUI(theme) {
+        if (theme === 'dark') {
+          root.setAttribute('data-theme', 'dark');
+          themeIcon.textContent = '☀️';
+          themeLabel.textContent = 'Light Theme';
+        } else {
+          root.setAttribute('data-theme', 'light');
+          themeIcon.textContent = '🌙';
+          themeLabel.textContent = 'Dark Theme';
+        }
+      }
+
+      const savedTheme = localStorage.getItem('ak-theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      updateThemeUI(savedTheme);
+
+      themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = root.getAttribute('data-theme') || 'light';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('ak-theme', nextTheme);
+        updateThemeUI(nextTheme);
+      });
+    })();
+  </script>
+</body>
+</html>
