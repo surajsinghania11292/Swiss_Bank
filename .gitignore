@@ -35,3 +35,9 @@ yarn-error.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Resumes and private personal documents
+*.pdf
+
+# Internal build and automation scripts
+scripts/
