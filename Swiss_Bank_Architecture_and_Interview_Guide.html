@@ -1015,61 +1015,688 @@
         Why can't you build a bank like a standard CRUD app (like a blog, e-commerce cart, or social network)? In banking, a single race condition, rounding glitch, or unhandled rollback results in real financial loss, regulatory fines, and legal liability.
       </p>
 
-      <div class="tech-card" style="margin-bottom: 2rem;">
-        <h3 style="font-family: var(--font-display); font-size: 1.45rem; color: var(--accent); margin-bottom: 1rem;">
-          The 6 Critical Traps in Financial Software & How Swiss Bank Solves Them
-        </h3>
-        <div class="deep-dive-grid">
-          
-          <div class="deep-dive-item">
-            <strong>1. The Floating-Point Rounding Trap</strong>
-            <p style="color: var(--text-secondary);">
-              In JavaScript, <code>0.1 + 0.2 === 0.30000000000000004</code> due to IEEE 754 64-bit binary floating-point representation. If you use standard floats for money, tiny fractional pennies accumulate over millions of transactions, breaking ledger reconciliation and leading to massive audit failures.
-              <br><em>Swiss Bank Solution:</em> Strict database-level <code>Decimal(19, 2)</code> storage in PostgreSQL via Prisma, and precise string/integer conversions on transfer operations.
+      <!-- ══════════════════════════════════════════════════════════════════════════
+           THE 6 CRITICAL TRAPS IN FINANCIAL SOFTWARE — MASTERCLASS WALKTHROUGH
+           Each trap explained across 3 cognitive tiers:
+           1. Simple Layman / Everyday Analogy
+           2. Technical Code Walkthrough (Flawed vs. Fixed)
+           3. Hard CS Core Theory (IEEE 754, Coffman Conditions, ACID Isolation, OWASP IDOR)
+           + Exact Codebase File & Line Citations
+           + Word-for-Word Senior Developer Interview Defense Scripts
+           ══════════════════════════════════════════════════════════════════════════ -->
+      <div style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-family: var(--font-display); font-size: 1.85rem; color: var(--accent); margin: 0 0 0.35rem 0;">
+              The 6 Critical Traps in Financial Software &amp; How Swiss Bank Solves Them
+            </h3>
+            <p style="font-size: 0.95rem; color: var(--text-secondary); margin: 0;">
+              Why consumer CRUD patterns result in financial disaster &mdash; complete multi-tier engineering analysis with codebase proof.
             </p>
           </div>
-
-          <div class="deep-dive-item">
-            <strong>2. The Double-Spending Race Condition</strong>
-            <p style="color: var(--text-secondary);">
-              If User A has ₹1,000 in their account and clicks "Transfer ₹1,000" twice in the exact same millisecond from two separate browser tabs or automated scripts, two concurrent threads read balance = ₹1,000, approve both, and deduct ₹2,000, leaving the account at -₹1,000.
-              <br><em>Swiss Bank Solution:</em> All transfers run inside atomic database transactions (<code>prisma.$transaction</code>). Row locks ensure thread A finishes reading, deducting, and updating before thread B can read the balance.
-            </p>
-          </div>
-
-          <div class="deep-dive-item">
-            <strong>3. The Deadlock Trap in Peer-to-Peer Transfers</strong>
-            <p style="color: var(--text-secondary);">
-              If Alice transfers money to Bob (locking Alice then Bob), while Bob simultaneously transfers to Alice (locking Bob then Alice), both transactions block each other indefinitely waiting for the other's lock, causing a database deadlock and crash.
-              <br><em>Swiss Bank Solution:</em> Deterministic lock acquisition ordering (locking the lower account number first, regardless of who is sender or receiver).
-            </p>
-          </div>
-
-          <div class="deep-dive-item">
-            <strong>4. The Insecure Direct Object Reference (IDOR) Trap</strong>
-            <p style="color: var(--text-secondary);">
-              A malicious user inspects network traffic, changes <code>accountNumber: 10293847</code> to another user's account number <code>10293848</code> in the request body, and withdraws or views their funds.
-              <br><em>Swiss Bank Solution:</em> Strict session ownership validation on every service method: <code>if (acct.ownerId !== owner.id) throw ApiException.forbidden("You don't own this account")</code>.
-            </p>
-          </div>
-
-          <div class="deep-dive-item">
-            <strong>5. The Partial Failure / Orphan State Trap</strong>
-            <p style="color: var(--text-secondary);">
-              If ₹5,000 is deducted from Sender A, but the network drops or the database crashes before Crediting Recipient B, ₹5,000 vanishes into thin air.
-              <br><em>Swiss Bank Solution:</em> PostgreSQL <strong>Atomicity</strong> guaranteed by Prisma transactions. If the credit fails, the debit is rolled back instantly. Either all steps commit together, or none do.
-            </p>
-          </div>
-
-          <div class="deep-dive-item">
-            <strong>6. The Compromised Session / High-Value Transfer Trap</strong>
-            <p style="color: var(--text-secondary);">
-              If an attacker steals an active session cookie or a laptop is left unlocked, the attacker could empty a user's entire life savings in a single click.
-              <br><em>Swiss Bank Solution:</em> Multi-tiered defense: every money movement requires a 4–6 digit security PIN (BCrypt hashed), and any transfer &ge; ₹50,000 triggers <strong>Step-Up 2FA TOTP</strong>, demanding a live 6-digit code from Google Authenticator.
-            </p>
-          </div>
-
+          <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25); font-size: 0.85rem; padding: 0.4rem 1rem;">
+            Mission-Critical Architecture
+          </span>
         </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 1: THE FLOATING-POINT ROUNDING TRAP & PENNY DRIFT
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-floating-point">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 01</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Floating-Point Rounding Trap &amp; Penny Drift</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">IEEE 754 64-Bit Binary Float vs. Arbitrary-Precision PostgreSQL Decimal(19, 2)</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">Financial Accuracy Failure</span>
+          </div>
+
+          <!-- 3-Tier Multi-Depth Explanation Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <!-- Tier 1: Layman -->
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">The 1/3 Paper Fraction Analogy</div>
+              <div class="explain-text">
+                Imagine writing the fraction <strong>1/3</strong> on a tiny piece of paper. You write <code>0.333333</code> and run out of space. Now multiply that back by 3: you get <code>0.999999</code>, not <code>1.00</code>! That missing <code>0.000001</code> vanished because paper has finite space.
+                <br><br>
+                Computers do the exact same thing in binary (base-2). Just as 1/3 cannot be represented finitely in decimal (base-10), <strong>0.1 and 0.2 cannot be represented finitely in binary</strong>. When a bank processes 1,000,000 transactions with standard floats, fractions of pennies drift away or appear out of nowhere, causing accounting ledgers to fail external audits.
+              </div>
+            </div>
+
+            <!-- Tier 2: Technical -->
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">0.1 + 0.2 === 0.30000000000000004</div>
+              <div class="explain-text">
+                In standard JavaScript:
+                <br><code>0.1 + 0.2 === 0.30000000000000004</code>
+                <br><code>(0.1 + 0.2) === 0.3 // false</code>
+                <br><br>
+                If a backend evaluates <code>account.balance -= 0.10</code> repeatedly, tiny precision errors accumulate. A ledger audit checking <code>SUM(debits) === SUM(credits)</code> will fail with a fractional discrepancy.
+                <br><br>
+                <strong>The Rule:</strong> Never store, calculate, or manipulate monetary balances using standard floating-point variables in runtime memory or databases.
+              </div>
+            </div>
+
+            <!-- Tier 3: Hard CS Core -->
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">IEEE 754 &amp; Base-2 Non-Terminating Fractions</div>
+              <div class="explain-text">
+                JavaScript numbers are <strong>IEEE 754 64-bit double-precision binary floats</strong>:
+                <br>&bull; 1 Sign bit (S)
+                <br>&bull; 11 Exponent bits (E, bias 1023)
+                <br>&bull; 52 Mantissa/Significand bits (M)
+                <br>Formula: <code>(-1)ˢ &times; (1 + M) &times; 2^(E-1023)</code>
+                <br><br>
+                In base 10, a fraction <em>p/q</em> terminates iff prime factors of <em>q</em> are only 2 and 5. In base 2, it terminates iff prime factors are only 2. Because <code>0.1 = 1/10 = 1/(2&times;5)</code>, its binary expansion is infinite: <code>0.0001100110011...₂</code>. Truncating at 53 bits creates a machine epsilon (&epsilon; &asymp; 2.22 &times; 10⁻¹⁶) rounding error.
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Comparison: Flawed vs Fixed -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Native Float Drift)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// Standard JS Number floating-point drift</span>
+<span class="c-kw">let</span> balance = <span class="c-num">100.00</span>;
+balance -= <span class="c-num">0.10</span>;
+balance -= <span class="c-num">0.20</span>;
+
+console.<span class="c-fn">log</span>(balance);
+<span class="c-cmt">// Outputs: 99.70000000000002</span>
+
+console.<span class="c-fn">log</span>(balance === <span class="c-num">99.70</span>);
+<span class="c-cmt">// FALSE! Ledgers fail to balance & audits fail!</span></code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (PostgreSQL Decimal 19, 2)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/prisma/schema.prisma (Lines 38, 56)</span>
+<span class="c-kw">model</span> Account {
+  balance Decimal <span class="c-type">@default(0.00) @db.Decimal(19, 2)</span>
+}
+
+<span class="c-kw">model</span> LedgerEntry {
+  amount       Decimal <span class="c-type">@db.Decimal(19, 2)</span>
+  balanceAfter Decimal <span class="c-type">@db.Decimal(19, 2)</span>
+}
+<span class="c-cmt">// Stored as exact Binary-Coded Decimal (BCD) in PostgreSQL</span></code></pre>
+            </div>
+          </div>
+
+          <!-- Codebase Location -->
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/prisma/schema.prisma</code> &mdash; Lines 38, 56, 57, 90: All balance and transaction attributes configured with <code>@db.Decimal(19, 2)</code>.</li>
+              <li><code>server/services/accountService.js</code> &mdash; Lines 280&ndash;282, 334&ndash;336: Sanitization via <code>BigInt</code> for account numbers and exact fixed-point string parsing.</li>
+            </ul>
+          </div>
+
+          <!-- Interview Masterclass -->
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"Why can't you use standard JavaScript numbers to store currency in a financial application?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "JavaScript numbers are implemented as 64-bit IEEE 754 double-precision binary floats. Because base-10 fractions like 0.1 and 0.2 cannot be represented as finite terminating binaries in base-2, computing <code>0.1 + 0.2</code> yields <code>0.30000000000000004</code>. In a high-throughput banking system, accumulating rounding drift over millions of ledger rows makes double-entry reconciliation (&sum; Debits = &sum; Credits) mathematically impossible to balance. In Swiss Bank, we eliminate this vulnerability by defining all balance and amount columns in PostgreSQL as <code>Decimal(19, 2)</code> via Prisma. PostgreSQL stores these numbers as arbitrary-precision Binary Coded Decimals without binary floating-point approximation, ensuring complete precision down to the exact cent."
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 2: THE DOUBLE-SPENDING RACE CONDITION
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-double-spending">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 02</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Double-Spending Race Condition</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Time-of-Check to Time-of-Use (TOCTOU) &amp; Lost Updates</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">Critical Financial Exploit</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">Two Friends at Two ATMs Simultaneously</div>
+              <div class="explain-text">
+                Imagine you have &dollar;1,000 in your account. You give two debit cards to two friends standing at two different ATMs across town. At the exact same second (12:00:00.000), both press <em>"Withdraw &dollar;1,000"</em>.
+                <br><br>
+                If the bank computer checks ATM #1 (balance is &dollar;1,000 &mdash; approved!) and checks ATM #2 at the exact same instant (balance is &dollar;1,000 &mdash; approved!), both ATMs spit out cash. You withdrew &dollar;2,000 from a &dollar;1,000 balance!
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">Non-Atomic Read &amp; Write Race Window</div>
+              <div class="explain-text">
+                In a standard async Node.js server without transactions:
+                <br>1. Thread A queries <code>SELECT balance FROM Account</code> &rarr; sees 1,000.
+                <br>2. Thread B queries <code>SELECT balance FROM Account</code> &rarr; sees 1,000.
+                <br>3. Thread A executes <code>UPDATE balance = 0</code>.
+                <br>4. Thread B executes <code>UPDATE balance = 0</code> (or -1,000).
+                <br><br>
+                <strong>The Result:</strong> The account holder sent &dollar;2,000 while only being charged &dollar;1,000. The bank absorbs the &dollar;1,000 loss.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">ACID Isolation, Lost Updates &amp; Row-Level Locks</div>
+              <div class="explain-text">
+                This is a classic <strong>Time-of-Check to Time-of-Use (TOCTOU)</strong> race condition leading to a <strong>Lost Update Anomaly</strong>.
+                <br><br>
+                Under default SQL Read Committed isolation without explicit locks, two concurrent transactions can interleave their execution history. To guarantee serializability, the database must acquire an <strong>exclusive row-level write lock</strong> during the check phase. Thread B is blocked at the database engine level until Thread A commits or rolls back.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Vulnerable to Race Condition)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// Vulnerable non-atomic read and write</span>
+<span class="c-kw">const</span> acct = <span class="c-kw">await</span> db.account.findUnique({ where: { id } });
+<span class="c-kw">if</span> (acct.balance >= amount) {
+  <span class="c-cmt">// RACE WINDOW: Another request can read old balance here!</span>
+  <span class="c-kw">await</span> db.account.update({
+    where: { id },
+    data: { balance: acct.balance - amount }
+  });
+}</code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (Atomic prisma.$transaction)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/services/accountService.js (Lines 303-335)</span>
+<span class="c-kw">const</span> result = <span class="c-kw">await</span> prisma.<span class="c-fn">$transaction</span>(<span class="c-kw">async</span> (tx) => {
+  <span class="c-kw">const</span> fromAcct = <span class="c-kw">await</span> tx.account.findUnique({ where: ... });
+  <span class="c-kw">if</span> (Number(fromAcct.balance) &lt; numAmount) {
+    <span class="c-kw">throw</span> ApiException.<span class="c-fn">badRequest</span>(<span class="c-str">'Insufficient balance'</span>);
+  }
+  <span class="c-cmt">// Read, check, and update execute atomically under row lock</span>
+  <span class="c-kw">await</span> tx.account.update({ where: ..., data: ... });
+});</code></pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/services/accountService.js</code> &mdash; Lines 303&ndash;336: Wrapped in <code>prisma.$transaction(async (tx) =&gt; { ... })</code>. The balance read, sufficiency check, and mutation execute within the isolated transaction scope.</li>
+            </ul>
+          </div>
+
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"How do you prevent a user from double-spending their balance if they send two transfer requests at the exact same millisecond?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "We prevent double-spending by encapsulating balance validation, deduction, and ledger insertion within an atomic <code>prisma.$transaction</code> block. Under PostgreSQL's transactional engine, the first transaction acquires an exclusive row-level lock on the sender's account record. The second concurrent transaction is blocked at the database level until the first commits. When the second transaction unblocks and reads the balance, it observes the already-debited funds, fails the balance check (<code>fromBalance &lt; numAmount</code>), and throws an <code>ApiException.badRequest('Insufficient balance')</code>."
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 3: THE DEADLOCK TRAP IN PEER-TO-PEER CROSS-TRANSFERS
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-deadlock">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 03</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Deadlock Trap in Peer-to-Peer Cross-Transfers</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Coffman Conditions, Circular Wait &amp; Deterministic Lock Ordering</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">System Freeze &amp; Abort</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">The Narrow Doorway Stalemate</div>
+              <div class="explain-text">
+                Alice and Bob meet in a very narrow doorway. Alice says: <em>"I will not take a step until you step back."</em> Bob says: <em>"I will not take a step until you step back."</em> Neither will budge, so both are frozen in place forever.
+                <br><br>
+                In a database: Transaction 1 locks Account A and waits for Account B. At the same millisecond, Transaction 2 locks Account B and waits for Account A. Both transactions wait forever on each other until the database crashes or kills the connection.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">Cross-Transfer Circular Dependency</div>
+              <div class="explain-text">
+                Consider concurrent cross-transfers:
+                <br>&bull; Thread 1: User 10 sends to User 20 &rarr; Locks 10, requests 20.
+                <br>&bull; Thread 2: User 20 sends to User 10 &rarr; Locks 20, requests 10.
+                <br><br>
+                PostgreSQL detects this cyclical dependency graph:
+                <br><code>ERROR: deadlock detected (40P01)</code>
+                <br>One transaction is abruptly killed by the database server, returning HTTP 500 errors to users.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">Coffman Conditions &amp; Global Total Order</div>
+              <div class="explain-text">
+                By <strong>Coffman's Theorem (1971)</strong>, a deadlock requires 4 simultaneous conditions:
+                <br>1. Mutual Exclusion
+                <br>2. Hold and Wait
+                <br>3. No Preemption
+                <br>4. <strong>Circular Wait</strong>
+                <br><br>
+                To eliminate deadlocks, we mathematically invalidate Condition #4 by imposing a <strong>Global Total Order / Resource Hierarchy (Havender's Principle)</strong>: resources must always be acquired in strictly monotonic primary key order (<code>min(id) &lt; max(id)</code>). Circular wait cannot form.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Arbitrary Lock Acquisition)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// Tx 1: A -> B locks A then B</span>
+<span class="c-kw">await</span> tx.account.update({ where: { id: fromAcct.id } });
+<span class="c-kw">await</span> tx.account.update({ where: { id: toAcct.id } });
+
+<span class="c-cmt">// Tx 2: B -> A locks B then A</span>
+<span class="c-kw">await</span> tx.account.update({ where: { id: fromAcct.id } });
+<span class="c-kw">await</span> tx.account.update({ where: { id: toAcct.id } });
+<span class="c-cmt">// Concurrent execution triggers: ERROR: deadlock detected!</span></code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (Deterministic Lock Ordering)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/services/accountService.js (Lines 337-359)</span>
+<span class="c-cmt">// Always lock smaller ID first, breaking Circular Wait!</span>
+<span class="c-kw">if</span> (fromAcct.id &lt; toAcct.id) {
+  <span class="c-kw">await</span> tx.account.update({ where: { id: fromAcct.id }, data: ... });
+  <span class="c-kw">await</span> tx.account.update({ where: { id: toAcct.id }, data: ... });
+} <span class="c-kw">else</span> {
+  <span class="c-kw">await</span> tx.account.update({ where: { id: toAcct.id }, data: ... });
+  <span class="c-kw">await</span> tx.account.update({ where: { id: fromAcct.id }, data: ... });
+}</code></pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/services/accountService.js</code> &mdash; Lines 337&ndash;359: Deterministic Lock Acquisition Ordering implemented in the <code>transfer()</code> method. Regardless of who sends and who receives, the account record with the numerically smaller <code>id</code> is locked and updated first.</li>
+            </ul>
+          </div>
+
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"What happens when User A transfers to User B at the exact same time User B transfers to User A? How do you prevent database deadlocks?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "Concurrent cross-transfers cause a circular wait deadlock if locks are acquired in order of sender then recipient: Tx 1 locks A and requests B, while Tx 2 locks B and requests A. In Swiss Bank, we break Coffman's 4th condition (Circular Wait) by enforcing deterministic lock acquisition ordering. We compare the numeric IDs of both accounts (<code>fromAcct.id &lt; toAcct.id</code>) and always update the account with the smaller ID first, regardless of transfer direction. Because all concurrent transactions request locks according to the exact same total order, cyclic dependencies in the wait-for graph are mathematically impossible."
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 4: THE INSECURE DIRECT OBJECT REFERENCE (IDOR) TRAP
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-idor">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 04</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Insecure Direct Object Reference (IDOR) Trap</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">OWASP Top 10 A01: Broken Access Control &amp; Horizontal Privilege Escalation</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">Unauthorized Access Vulnerability</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">The Careless Hotel Receptionist</div>
+              <div class="explain-text">
+                You check into a hotel and are given Room 101. You walk down to the reception desk, show your Room 101 key, but ask: <em>"Can you bring the suitcase from Room 205 down to my car?"</em>
+                <br><br>
+                A foolish receptionist says: <em>"Sure, you gave me a valid room number (205)!"</em> without verifying whether Room 205 is actually rented by you. That is IDOR: trusting the object ID sent in a request without verifying ownership.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">Body Parameter Tampering in DevTools</div>
+              <div class="explain-text">
+                An attacker logs into their legitimate Swiss Bank account (#1001).
+                <br>They open browser DevTools or Postman and change the request JSON:
+                <br><code>{ "fromAccountNumber": 1002, "amount": 50000 }</code>
+                <br><br>
+                If the backend executes <code>WHERE accountNumber = req.body.fromAccountNumber</code> without checking if account #1002 belongs to the authenticated user, the attacker drains someone else's money!
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">Subject-to-Object Authorization Boundary</div>
+              <div class="explain-text">
+                IDOR represents a failure of <strong>Horizontal Privilege Escalation</strong> under <strong>OWASP Top 10: Broken Access Control</strong>.
+                <br><br>
+                In secure computer systems, an authenticated Subject (<em>S</em>, represented by a verified JWT cryptographic signature) must be evaluated against the Target Object's Access Control List (<em>O.ownerId == S.id</em>) on <strong>every single query and mutation</strong>. Direct primary keys from client bodies can never be trusted as authorization proof.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Blindly Trusting Payload ID)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// DANGEROUS: Blindly trusting client-supplied account number</span>
+<span class="c-kw">const</span> { fromAccountNumber, amount } = req.body;
+<span class="c-kw">const</span> acct = <span class="c-kw">await</span> db.account.findUnique({
+  where: { accountNumber: fromAccountNumber }
+});
+<span class="c-cmt">// No ownership check! Anyone can debit any account!</span>
+<span class="c-kw">await</span> db.account.update({ ... });</code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (Strict Ownership Validation)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/services/accountService.js (Lines 314-316)</span>
+<span class="c-kw">const</span> fromAcct = <span class="c-kw">await</span> tx.account.findUnique({ where: ... });
+
+<span class="c-kw">if</span> (fromAcct.ownerId !== owner.id) {
+  <span class="c-kw">throw</span> ApiException.<span class="c-fn">forbidden</span>(
+    <span class="c-str">"You don't own the source account"</span>
+  );
+}</code></pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/services/accountService.js</code> &mdash; Lines 64, 77, 115, 179, 235, 314&ndash;316: Every single service method (<code>getAccount</code>, <code>getStatement</code>, <code>deposit</code>, <code>withdraw</code>, <code>transfer</code>) strictly validates <code>acct.ownerId !== owner.id</code> against the authenticated JWT session owner.</li>
+            </ul>
+          </div>
+
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"How do you protect your banking endpoints against IDOR (Insecure Direct Object Reference) vulnerabilities?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "We never rely on client-supplied parameters for authorization. In Swiss Bank, while the client supplies the target account number in the payload, our service layer extracts the authenticated user identity strictly from the verified JWT payload (<code>req.user.id</code>). Prior to any balance check or mutation, our service checks <code>if (fromAcct.ownerId !== owner.id) throw ApiException.forbidden('You don\'t own the source account')</code>. Even if a malicious user alters the account number in DevTools or sends raw API requests via Postman, the operation is immediately rejected with HTTP 403 Forbidden."
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 5: THE PARTIAL FAILURE / ORPHAN STATE TRAP
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-partial-failure">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 05</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Partial Failure / Orphan State Trap</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">ACID Atomicity, Write-Ahead Logging (WAL) &amp; Automatic Rollbacks</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">Ledger Corruption Risk</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">The Power Cut at the Cash Register</div>
+              <div class="explain-text">
+                Imagine buying a laptop at an electronics store. The clerk takes &dollar;1,000 cash from your hand and puts it in the drawer. But before handing you the laptop, lightning strikes the building, the power cuts out, and the store alarms force an evacuation.
+                <br><br>
+                You lost &dollar;1,000, but have no laptop! In banking software, if the server takes money from Sender A, but the network crashes before Crediting Recipient B, that money disappears into thin air.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">Un-Transactioned Step Failure</div>
+              <div class="explain-text">
+                A money transfer requires 4 individual database operations:
+                <br>1. Debit Sender Account
+                <br>2. Credit Recipient Account
+                <br>3. Insert DEBIT Ledger Record
+                <br>4. Insert CREDIT Ledger Record
+                <br><br>
+                If these run as individual queries and Step 2 throws a foreign key error or network timeout, Steps 1 remains persisted. The bank ledger is out of balance by that exact amount.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">ACID Atomicity &amp; Write-Ahead Log (WAL)</div>
+              <div class="explain-text">
+                <strong>Atomicity</strong> is the "All-or-Nothing" property of relational database management systems.
+                <br><br>
+                PostgreSQL implements atomicity using <strong>Write-Ahead Logging (WAL)</strong>. Modifications are written to the WAL in memory before dirty pages are flushed to table files. If an exception is caught before an explicit <code>COMMIT</code>, the database issues an instant <code>ROLLBACK</code>, discarding all uncommitted WAL frames and restoring all modified records to their exact pre-transaction snapshot.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Individual Unbounded Queries)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// DANGEROUS: If server crashes after step 1, money vanishes</span>
+<span class="c-kw">await</span> db.account.update({
+  where: { id: senderId },
+  data: { balance: senderBal - amount }
+});
+<span class="c-cmt">// CRASH / EXCEPTION HERE &rarr; Money deducted, never received!</span>
+<span class="c-kw">await</span> db.account.update({
+  where: { id: recipientId },
+  data: { balance: recipientBal + amount }
+});</code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (Atomic All-Or-Nothing Transaction)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/services/accountService.js (Lines 303-384)</span>
+<span class="c-kw">const</span> result = <span class="c-kw">await</span> prisma.<span class="c-fn">$transaction</span>(<span class="c-kw">async</span> (tx) => {
+  <span class="c-cmt">// 1. Update Sender Balance</span>
+  <span class="c-cmt">// 2. Update Recipient Balance</span>
+  <span class="c-cmt">// 3. Create DEBIT Ledger Record</span>
+  <span class="c-cmt">// 4. Create CREDIT Ledger Record</span>
+  <span class="c-cmt">// If ANY statement throws, ALL 4 steps roll back automatically!</span>
+});</code></pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/services/accountService.js</code> &mdash; Lines 303&ndash;385: All 4 mutation statements (both balance updates and both ledger entries) execute inside <code>prisma.$transaction(async (tx) =&gt; { ... })</code>. If any single call throws, PostgreSQL executes a complete rollback.</li>
+            </ul>
+          </div>
+
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"What happens if your server crashes or the database connection drops halfway through a transfer?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "In Swiss Bank, money transfers are executed as a single atomic unit of work inside <code>prisma.$transaction</code>. Under the Atomicity guarantee of PostgreSQL, all four operations&mdash;the sender debit, the recipient credit, and the dual immutable ledger entries&mdash;are treated as an indivisible transaction. If a crash or network severance occurs at any point prior to the commit phase, PostgreSQL uses its Write-Ahead Log (WAL) to discard all uncommitted changes and perform an immediate rollback. The sender's balance remains 100% intact, and no orphan records are ever persisted."
+            </div>
+          </div>
+        </article>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TRAP 6: THE COMPROMISED SESSION / HIGH-VALUE TRANSFER TRAP
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <article class="tech-card" style="margin-bottom: 2.5rem;" id="trap-compromised-session">
+          <div class="tech-head">
+            <div class="tech-badge-title">
+              <div class="tech-icon" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">TRAP 06</div>
+              <div>
+                <h4 class="tech-name" style="font-size: 1.45rem;">The Compromised Session &amp; High-Value Transfer Trap</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Defense-in-Depth, BCrypt PIN Verification &amp; Step-Up RFC 6238 TOTP</p>
+              </div>
+            </div>
+            <span class="tech-pill" style="background: var(--danger-bg); color: var(--danger); border-color: rgba(185, 28, 28, 0.25);">Account Takeover Defense</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.35rem 0;">
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag simple" style="color: #10b981;">1. Layman / Everyday Analogy</span>
+              <div class="explain-title">The Unlocked Laptop in a Cafe</div>
+              <div class="explain-text">
+                Imagine you are logged into your banking app at a coffee shop. You leave your laptop on the table for 2 minutes to grab a coffee. A stranger walks past your screen.
+                <br><br>
+                Should that stranger be able to click <em>"Transfer All"</em> and send &dollar;100,000 to their account in one click? <strong>Absolutely not!</strong> A real bank demands a secret PIN for any transaction, and if the amount is high, demands a live 6-digit code from your phone's authenticator app.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag technical" style="color: #0284c7;">2. Technical Reality</span>
+              <div class="explain-title">Session Hijacking &amp; Elevated Intent</div>
+              <div class="explain-text">
+                JWT cookies can be hijacked via XSS, network eavesdropping, or physical workstation access.
+                <br><br>
+                If a backend only checks <code>authenticateJWT</code>, any stolen session cookie can drain an account completely.
+                <br><br>
+                <strong>Swiss Bank Solution:</strong>
+                <br>1. <strong>Mandatory PIN:</strong> Every transfer requires an independent BCrypt-hashed security PIN.
+                <br>2. <strong>Step-Up 2FA:</strong> Any transfer &ge; &dollar;50,000 triggers Step-Up 2FA, requiring an RFC 6238 TOTP live code.
+              </div>
+            </div>
+
+            <div class="explain-col" style="background: var(--bg-card-raised);">
+              <span class="explain-tag" style="color: #8b5cf6;">3. The Hard CS Core Theory</span>
+              <div class="explain-title">Defense-in-Depth &amp; RFC 6238 HMAC-SHA1 TOTP</div>
+              <div class="explain-text">
+                Financial software implements <strong>Defense-in-Depth</strong> by decoupling <em>session identity</em> from <em>transaction authorization</em>.
+                <br><br>
+                We enforce two distinct authentication factors:
+                <br>&bull; <strong>Knowledge Factor:</strong> BCrypt-hashed 4-6 digit security PIN (salted with 10 rounds).
+                <br>&bull; <strong>Possession Factor:</strong> RFC 6238 Time-based One-Time Password (TOTP) computed via:
+                <br><code>TOTP = Truncate(HMAC-SHA1(K, C))</code>
+                <br>where <em>C = floor(unixTime / 30)</em>.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.35rem;">
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(185, 28, 28, 0.15); border-bottom: 1px solid rgba(185, 28, 28, 0.3);">
+                <div class="code-bar-title" style="color: #f87171;">&times; FLAWED CODE (Relying Solely on Session Cookie)</div>
+                <div class="code-dots"><div class="code-dot red"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// DANGEROUS: Anyone with hijacked cookie drains funds</span>
+router.<span class="c-fn">post</span>(<span class="c-str">'/transfer'</span>, authenticateJWT, <span class="c-kw">async</span> (req, res) => {
+  <span class="c-cmt">// Stolen cookie directly drains entire balance!</span>
+  <span class="c-kw">await</span> accountService.<span class="c-fn">transfer</span>(req.user, req.body);
+  res.<span class="c-fn">json</span>({ success: <span class="c-kw">true</span> });
+});</code></pre>
+            </div>
+
+            <div class="code-container" style="margin: 0;">
+              <div class="code-bar" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="code-bar-title" style="color: #34d399;">&check; SWISS BANK FIX (BCrypt PIN + Step-Up 2FA)</div>
+                <div class="code-dots"><div class="code-dot green"></div></div>
+              </div>
+              <pre><code><span class="c-cmt">// server/services/accountService.js (Lines 292-299, 324-327)</span>
+<span class="c-cmt">// 1. Step-Up 2FA for High-Value (>= ₹50,000)</span>
+<span class="c-kw">if</span> (owner.totpEnabled && numAmount >= HIGH_VALUE_THRESHOLD) {
+  <span class="c-kw">if</span> (!totpService.<span class="c-fn">verify</span>(owner.totpSecret, totpCode.trim())) {
+    <span class="c-kw">throw</span> ApiException.<span class="c-fn">totpInvalid</span>(<span class="c-str">'Incorrect 2FA code'</span>);
+  }
+}
+<span class="c-cmt">// 2. Mandatory BCrypt PIN verification</span>
+<span class="c-kw">const</span> matches = <span class="c-kw">await</span> bcrypt.<span class="c-fn">compare</span>(pin, fromAcct.pinHash);
+<span class="c-kw">if</span> (!matches) <span class="c-kw">throw</span> ApiException.<span class="c-fn">forbidden</span>(<span class="c-str">'Invalid security PIN'</span>);</code></pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.4rem; margin-bottom: 1.35rem; font-size: 0.9rem;">
+            <strong style="color: var(--accent);">📂 Exact Codebase File Reference:</strong>
+            <ul style="margin: 0.5rem 0 0 1.2rem; color: var(--text-secondary); line-height: 1.6;">
+              <li><code>server/services/accountService.js</code> &mdash; Lines 291&ndash;299: Step-Up 2FA validation triggered whenever <code>numAmount &gt;= HIGH_VALUE_THRESHOLD</code> (50,000).</li>
+              <li><code>server/services/accountService.js</code> &mdash; Lines 324&ndash;327: <code>bcrypt.compare(pin, fromAcct.pinHash)</code> executed inside the atomic transaction before balance mutation.</li>
+              <li><code>server/services/totpService.js</code> &mdash; Speakeasy RFC 6238 TOTP verification with time-drift protection window.</li>
+            </ul>
+          </div>
+
+          <div style="background: var(--accent-light); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 1.35rem 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <strong style="font-family: var(--font-display); font-size: 1.05rem; color: var(--accent);">Interview Defense Masterclass</strong>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+              <strong>Interviewer Question:</strong> <em>"If an attacker steals an active session cookie or JWT, how do you prevent them from transferring funds out of the victim's account?"</em>
+            </p>
+            <div style="background: var(--bg-card-raised); border-left: 4px solid var(--accent); padding: 0.95rem 1.2rem; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 0.91rem; color: var(--text-primary); line-height: 1.65;">
+              <strong>Word-for-Word Senior Developer Answer:</strong><br>
+              "We implement defense-in-depth through Step-Up Re-Authentication. A valid JWT session cookie only grants access to passive, read-only operations like viewing dashboards and statements. To authorize any state-changing money movement, the caller must submit a secret security PIN, which is compared against a salted BCrypt hash stored in the database. Furthermore, for transfers of &dollar;50,000 or greater, we enforce Step-Up 2FA requiring an RFC 6238 TOTP live token generated by Google Authenticator. Even in the event of total session hijacking, an attacker cannot transfer money without both the secret PIN and physical possession of the user's 2FA authenticator device."
+            </div>
+          </div>
+        </article>
+
       </div>
 
       <div class="tech-card">

@@ -334,15 +334,29 @@ export const accountService = {
       const updatedFromBalance = fromBalance - numAmount;
       const updatedToBalance = Number(toAcct.balance) + numAmount;
 
-      const updatedFrom = await tx.account.update({
-        where: { id: fromAcct.id },
-        data: { balance: updatedFromBalance },
-      });
-
-      await tx.account.update({
-        where: { id: toAcct.id },
-        data: { balance: updatedToBalance },
-      });
+      // Deterministic Lock Acquisition Ordering (Deadlock Prevention):
+      // Always update the lower Account ID first, regardless of whether it is sender or receiver.
+      // This eliminates the Coffman "circular wait" condition and guarantees zero deadlocks under concurrent cross-transfers.
+      let updatedFrom;
+      if (fromAcct.id < toAcct.id) {
+        updatedFrom = await tx.account.update({
+          where: { id: fromAcct.id },
+          data: { balance: updatedFromBalance },
+        });
+        await tx.account.update({
+          where: { id: toAcct.id },
+          data: { balance: updatedToBalance },
+        });
+      } else {
+        await tx.account.update({
+          where: { id: toAcct.id },
+          data: { balance: updatedToBalance },
+        });
+        updatedFrom = await tx.account.update({
+          where: { id: fromAcct.id },
+          data: { balance: updatedFromBalance },
+        });
+      }
 
       // Write two ledger entries (Double-entry) under same reference
       await tx.ledgerEntry.create({
